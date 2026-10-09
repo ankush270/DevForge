@@ -325,6 +325,24 @@ export function Sidebar() {
         </button>
 
         <button
+          onClick={() => setActiveView('landing')}
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+            activeView === 'landing'
+              ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold'
+              : 'text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)]'
+          }`}
+          title="Product Guide, Features & Shortcuts"
+        >
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>Guide & Shortcuts</span>
+          </div>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            Guide
+          </span>
+        </button>
+
+        <button
           onClick={() => startRevisionQueue()}
           className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--foreground)] hover:bg-[var(--surface-hover)] transition-colors group"
         >

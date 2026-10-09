@@ -69,4 +69,4 @@ export interface Subject {
   topics: Topic[];
 }
 
-export type ActiveView = 'dashboard' | 'editor' | 'focus-deck';
+export type ActiveView = 'dashboard' | 'editor' | 'focus-deck' | 'landing';

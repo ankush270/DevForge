@@ -19,20 +19,20 @@ export function AppShell({ children }: AppShellProps) {
   const { activeView, setIsSidebarCollapsed } = useApp();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
-  // Focus-Deck mode takes over full screen with 0 distractions
-  const isFocusDeck = activeView === 'focus-deck';
+  // Focus-Deck mode & Landing Page take over full screen with 0 distractions
+  const isFullScreen = activeView === 'focus-deck' || activeView === 'landing';
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
-      {/* Desktop Sidebar (hidden in Focus Deck mode) */}
-      {!isFocusDeck && (
+      {/* Desktop Sidebar (hidden in Focus Deck or Landing mode) */}
+      {!isFullScreen && (
         <div className="hidden md:flex h-full">
           <Sidebar />
         </div>
       )}
 
       {/* Mobile Drawer (Slide-Over) */}
-      {!isFocusDeck && isMobileDrawerOpen && (
+      {!isFullScreen && isMobileDrawerOpen && (
         <div className="fixed inset-0 z-50 md:hidden flex">
           {/* Backdrop */}
           <div
@@ -63,7 +63,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Main Workspace Canvas */}
       <main className="flex-1 flex flex-col h-full overflow-y-auto relative pb-16 md:pb-0">
         {/* Mobile Top Header (only on mobile when not in focus deck) */}
-        {!isFocusDeck && (
+        {!isFullScreen && (
           <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)]/80 backdrop-blur-md sticky top-0 z-20">
             <button
               onClick={() => setIsMobileDrawerOpen(true)}
@@ -83,8 +83,8 @@ export function AppShell({ children }: AppShellProps) {
         {children}
       </main>
 
-      {/* Mobile Auto-Hiding Bottom Nav (hidden in focus deck) */}
-      {!isFocusDeck && (
+      {/* Mobile Auto-Hiding Bottom Nav (hidden in focus deck or landing) */}
+      {!isFullScreen && (
         <MobileBottomNav onOpenMobileDrawer={() => setIsMobileDrawerOpen(true)} />
       )}
 
