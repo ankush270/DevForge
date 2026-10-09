@@ -9,6 +9,7 @@ import { QuickCaptureModal } from '@/components/modals/QuickCaptureModal';
 import { InterviewSprintModal } from '@/components/modals/InterviewSprintModal';
 import { SettingsModal } from '@/components/modals/SettingsModal';
 import { CloudSyncModal } from '@/components/modals/CloudSyncModal';
+import { DevForgeLogo } from '@/components/common/DevForgeLogo';
 import { X, PanelLeft } from 'lucide-react';
 
 interface AppShellProps {
@@ -72,9 +73,7 @@ export function AppShell({ children }: AppShellProps) {
               <PanelLeft className="w-5 h-5" />
             </button>
 
-            <span className="text-base font-bold tracking-tight text-[var(--foreground)]">
-              InterviewOS
-            </span>
+            <DevForgeLogo size="sm" showText={true} />
 
             <div className="w-5" /> {/* Spacer */}
           </header>

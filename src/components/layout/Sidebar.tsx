@@ -37,6 +37,7 @@ import {
   SUBJECT_ICON_OPTIONS,
   SUBJECT_COLOR_OPTIONS,
 } from '@/lib/subjectIcons';
+import { DevForgeLogo } from '@/components/common/DevForgeLogo';
 
 function SubjectIconPicker({
   selectedIcon,
@@ -282,20 +283,13 @@ export function Sidebar() {
   return (
     <aside className="w-72 md:w-80 flex-shrink-0 h-full border-r border-[var(--border)] bg-[var(--surface)] flex flex-col transition-all duration-200">
       {/* Brand Header */}
-      <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-        <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setActiveView('dashboard')}>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-sm shadow-indigo-500/20 text-white font-bold text-base">
-            ⚡
-          </div>
-          <div>
-            <h1 className="text-base font-bold tracking-tight text-[var(--foreground)] flex items-center gap-1.5">
-              InterviewOS
-              <span className="text-xs uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-400">
-                PRO
-              </span>
-            </h1>
-            <p className="text-xs text-[var(--muted)]">Second Brain for SDE</p>
-          </div>
+      <div className="p-3.5 border-b border-[var(--border)] flex items-center justify-between">
+        <div
+          className="flex items-center gap-2.5 cursor-pointer group"
+          onClick={() => setActiveView('dashboard')}
+          title="DevForge - Return to Mission Control"
+        >
+          <DevForgeLogo size="md" showText={true} />
         </div>
 
         <button

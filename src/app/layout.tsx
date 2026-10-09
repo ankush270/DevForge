@@ -13,8 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "InterviewOS — Personal Knowledge & Revision Engine",
-  description: "Developer-first spaced repetition, active recall, and note-taking platform for SDE interview prep.",
+  title: "DevForge — Engineering Knowledge & Spaced Repetition OS",
+  description: "Developer-first spaced repetition, multi-perspective study modes, and active recall platform for software engineers.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useTheme } from '@/context/ThemeContext';
+import { DevForgeLogo } from '@/components/common/DevForgeLogo';
 import {
   Zap,
   Sparkles,
@@ -176,22 +177,7 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
-              <Zap className="w-5 h-5 fill-current" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-indigo-400 via-purple-300 to-amber-300 bg-clip-text text-transparent">
-                  DevForge
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 uppercase tracking-wider">
-                  OS v2.0
-                </span>
-              </div>
-              <p className="text-[11px] text-[var(--muted)] font-medium hidden sm:block">
-                Developer & Engineering Interview Operating System
-              </p>
-            </div>
+            <DevForgeLogo size="md" showText={true} />
           </div>
 
           {/* Nav Links & Action */}
@@ -802,8 +788,8 @@ graph TD
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-indigo-500/15 blur-[120px] rounded-full pointer-events-none -z-10" />
 
         <div className="max-w-4xl mx-auto px-4 text-center space-y-6">
-          <div className="inline-flex p-3 rounded-2xl bg-indigo-500/15 text-indigo-400 shadow-md">
-            <Zap className="w-8 h-8 fill-current" />
+          <div className="inline-flex justify-center">
+            <DevForgeLogo size="lg" />
           </div>
 
           <h2 className="text-3xl sm:text-5xl font-black text-[var(--foreground)] tracking-tight">
