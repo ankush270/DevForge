@@ -9,6 +9,7 @@ import { QuickCaptureModal } from '@/components/modals/QuickCaptureModal';
 import { InterviewSprintModal } from '@/components/modals/InterviewSprintModal';
 import { SettingsModal } from '@/components/modals/SettingsModal';
 import { CloudSyncModal } from '@/components/modals/CloudSyncModal';
+import { AuthModal } from '@/components/modals/AuthModal';
 import { DevForgeLogo } from '@/components/common/DevForgeLogo';
 import { X, PanelLeft } from 'lucide-react';
 
@@ -93,6 +94,7 @@ export function AppShell({ children }: AppShellProps) {
       <InterviewSprintModal />
       <SettingsModal />
       <CloudSyncModal />
+      <AuthModal />
     </div>
   );
 }

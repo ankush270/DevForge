@@ -31,7 +31,11 @@ import {
   Pencil,
   Trash2,
   Check,
+  Lock,
+  LogOut,
+  User,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import {
   renderSubjectIcon,
   SUBJECT_ICON_OPTIONS,
@@ -132,6 +136,15 @@ export function Sidebar() {
     startRevisionQueue,
   } = useApp();
 
+  const {
+    user,
+    signOut,
+    openAuthModal,
+    canEditSubject,
+    canEditNote,
+    requireAuth,
+  } = useAuth();
+
   const { theme, toggleTheme } = useTheme();
 
   const [expandedSubjects, setExpandedSubjects] = useState<Record<string, boolean>>({});
@@ -168,6 +181,7 @@ export function Sidebar() {
 
   const handleCreateSubject = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!requireAuth('create subjects')) return;
     if (!newSubjectTitle.trim()) return;
     const created = addSubject(newSubjectTitle.trim(), newSubjectIcon, newSubjectColor);
     setExpandedSubjects((prev) => ({ ...prev, [created.id]: true }));
@@ -178,8 +192,15 @@ export function Sidebar() {
     setShowIconPicker(false);
   };
 
-  const handleStartEditSubject = (subject: { id: string; title: string; icon: string; color: string }, e: React.MouseEvent) => {
+  const handleStartEditSubject = (
+    subject: { id: string; title: string; icon: string; color: string; userId?: string },
+    e: React.MouseEvent
+  ) => {
     e.stopPropagation();
+    if (!canEditSubject(subject)) {
+      requireAuth('edit this subject');
+      return;
+    }
     setEditingSubjectId(subject.id);
     setEditSubjectTitle(subject.title);
     setEditSubjectIcon(subject.icon || 'Cpu');
@@ -191,6 +212,11 @@ export function Sidebar() {
   const handleSaveEditSubject = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingSubjectId || !editSubjectTitle.trim()) return;
+    const target = subjects.find((s) => s.id === editingSubjectId);
+    if (target && !canEditSubject(target)) {
+      requireAuth('edit this subject');
+      return;
+    }
     updateSubject(editingSubjectId, {
       title: editSubjectTitle.trim(),
       icon: editSubjectIcon,
@@ -203,6 +229,11 @@ export function Sidebar() {
   const handleDeleteSubject = (subjectId: string, subjectTitle: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setMenuSubjectId(null);
+    const target = subjects.find((s) => s.id === subjectId);
+    if (target && !canEditSubject(target)) {
+      requireAuth('delete this subject');
+      return;
+    }
     if (confirm(`Delete subject "${subjectTitle}" and all its topics/notes?`)) {
       deleteSubject(subjectId);
     }
@@ -210,6 +241,12 @@ export function Sidebar() {
 
   const handleCreateTopic = (subjectId: string) => {
     if (!newTopicTitle.trim()) return;
+    const target = subjects.find((s) => s.id === subjectId);
+    if (target && !canEditSubject(target)) {
+      requireAuth('add topics to this subject');
+      return;
+    }
+    if (!requireAuth('add topics')) return;
     const created = addTopic(subjectId, newTopicTitle.trim());
     setExpandedTopics((prev) => ({ ...prev, [created.id]: true }));
     setNewTopicTitle('');
@@ -218,6 +255,7 @@ export function Sidebar() {
 
   const handleCreateNote = (topicId: string) => {
     if (!newNoteTitle.trim()) return;
+    if (!requireAuth('create notes')) return;
     addNote(topicId, newNoteTitle.trim());
     setNewNoteTitle('');
     setActiveNoteInput(null);
@@ -301,6 +339,58 @@ export function Sidebar() {
         </button>
       </div>
 
+      {/* User Account / Guest Status Card */}
+      <div className="px-3 pt-2.5 pb-1">
+        {user ? (
+          <div className="p-2.5 rounded-xl bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-between gap-2 shadow-sm">
+            <div className="flex items-center gap-2.5 truncate">
+              <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 uppercase shadow-sm shadow-indigo-600/30">
+                {user.name ? user.name[0] : user.email[0]}
+              </div>
+              <div className="truncate">
+                <div className="text-xs font-bold text-[var(--foreground)] truncate">
+                  {user.name || user.email.split('@')[0]}
+                </div>
+                <div className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Author Mode</span>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => signOut()}
+              className="p-1.5 rounded-lg text-[var(--muted)] hover:text-rose-400 hover:bg-rose-500/10 text-xs transition-colors cursor-pointer"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between gap-2 shadow-sm">
+            <div className="flex items-center gap-2 truncate">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                <Lock className="w-3.5 h-3.5" />
+              </div>
+              <div className="truncate">
+                <div className="text-xs font-bold text-amber-300">Guest Mode</div>
+                <div className="text-[10px] text-[var(--muted)]">Read-Only View</div>
+              </div>
+            </div>
+            <button
+              onClick={() =>
+                openAuthModal(
+                  'signin',
+                  'Sign in to create subjects and edit your notes.'
+                )
+              }
+              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-all cursor-pointer whitespace-nowrap"
+            >
+              Sign In
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Quick Mission Actions */}
       <div className="p-3 border-b border-[var(--border)] space-y-1">
         <button
@@ -364,7 +454,10 @@ export function Sidebar() {
         </div>
 
         <button
-          onClick={() => setIsQuickCaptureOpen(true)}
+          onClick={() => {
+            if (!requireAuth('create notes')) return;
+            setIsQuickCaptureOpen(true);
+          }}
           className="w-full mt-1.5 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm shadow-indigo-600/30 transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
@@ -380,7 +473,10 @@ export function Sidebar() {
             Knowledge Base
           </span>
           <button
-            onClick={() => setIsAddingSubject(true)}
+            onClick={() => {
+              if (!requireAuth('create subjects')) return;
+              setIsAddingSubject(true);
+            }}
             className="p-1 rounded text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)] transition-colors text-xs flex items-center gap-1 cursor-pointer"
             title="Add Subject"
           >
@@ -574,6 +670,7 @@ export function Sidebar() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (!requireAuth('add topics')) return;
                           setActiveTopicInput(subject.id);
                           setExpandedSubjects((prev) => ({ ...prev, [subject.id]: true }));
                         }}
@@ -590,7 +687,7 @@ export function Sidebar() {
                             setMenuSubjectId(isMenuOpen ? null : subject.id);
                           }}
                           className="opacity-0 group-hover:opacity-100 p-1 rounded text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-all cursor-pointer"
-                          title="Subject Options (Edit/Delete)"
+                          title="Subject Options"
                         >
                           <MoreHorizontal className="w-3.5 h-3.5" />
                         </button>
@@ -599,22 +696,36 @@ export function Sidebar() {
                         {isMenuOpen && (
                           <div
                             onClick={(e) => e.stopPropagation()}
-                            className="absolute right-0 top-full mt-1 w-36 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xl p-1 z-30 space-y-0.5 animate-in fade-in zoom-in-95 duration-100"
+                            className="absolute right-0 top-full mt-1 w-44 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xl p-1 z-30 space-y-0.5 animate-in fade-in zoom-in-95 duration-100"
                           >
-                            <button
-                              onClick={(e) => handleStartEditSubject(subject, e)}
-                              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--foreground)] hover:bg-[var(--surface-hover)] text-left transition-colors cursor-pointer"
-                            >
-                              <Pencil className="w-3.5 h-3.5 text-indigo-400" />
-                              <span>Edit Icon & Name</span>
-                            </button>
-                            <button
-                              onClick={(e) => handleDeleteSubject(subject.id, subject.title, e)}
-                              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-400 hover:bg-rose-500/10 text-left transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Delete Subject</span>
-                            </button>
+                            {canEditSubject(subject) ? (
+                              <>
+                                <button
+                                  onClick={(e) => handleStartEditSubject(subject, e)}
+                                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--foreground)] hover:bg-[var(--surface-hover)] text-left transition-colors cursor-pointer"
+                                >
+                                  <Pencil className="w-3.5 h-3.5 text-indigo-400" />
+                                  <span>Edit Icon & Name</span>
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeleteSubject(subject.id, subject.title, e)}
+                                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-400 hover:bg-rose-500/10 text-left transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Delete Subject</span>
+                                </button>
+                              </>
+                            ) : (
+                              <div className="px-2.5 py-2 text-xs text-[var(--muted)] space-y-1">
+                                <div className="flex items-center gap-1.5 text-amber-400 font-semibold">
+                                  <Lock className="w-3 h-3" />
+                                  <span>Read-Only Subject</span>
+                                </div>
+                                <p className="text-[11px] leading-tight">
+                                  Created by @{subject.authorEmail ? subject.authorEmail.split('@')[0] : 'author'}
+                                </p>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -664,6 +775,7 @@ export function Sidebar() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
+                                if (!requireAuth('create notes')) return;
                                 setActiveNoteInput(topic.id);
                                 setExpandedTopics((prev) => ({ ...prev, [topic.id]: true }));
                               }}
@@ -697,6 +809,7 @@ export function Sidebar() {
 
                               {topic.notes.map((note) => {
                                 const isSelected = selectedNote?.id === note.id && activeView === 'editor';
+                                const isAuthor = canEditNote(note);
                                 return (
                                   <button
                                     key={note.id}
@@ -710,6 +823,11 @@ export function Sidebar() {
                                     <div className="flex items-center gap-2 truncate">
                                       <FileText className="w-3.5 h-3.5 flex-shrink-0 opacity-70" />
                                       <span className="truncate">{note.title}</span>
+                                      {!isAuthor && (
+                                        <span title={`Read-only: created by @${note.authorEmail ? note.authorEmail.split('@')[0] : 'author'}`}>
+                                          <Lock className="w-2.5 h-2.5 text-amber-400 flex-shrink-0 opacity-70" />
+                                        </span>
+                                      )}
                                     </div>
 
                                     {/* Mastery Status Pill */}

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 import { DevForgeLogo } from '@/components/common/DevForgeLogo';
 import {
   Zap,
@@ -148,6 +149,7 @@ const SHORTCUTS: ShortcutItem[] = [
 export function LandingPage() {
   const { setActiveView, setIsQuickCaptureOpen, setIsCommandPaletteOpen } = useApp();
   const { theme, toggleTheme } = useTheme();
+  const { user, openAuthModal, signOut } = useAuth();
 
   const [activeFeatureTab, setActiveFeatureTab] = useState<'srs' | 'modes' | 'diagrams' | 'recall' | 'cloud' | 'dsa'>('modes');
   const [shortcutFilter, setShortcutFilter] = useState<'all' | 'global' | 'editor' | 'review' | 'modes'>('all');
@@ -214,6 +216,28 @@ export function LandingPage() {
             >
               {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
             </button>
+
+            {/* User Profile or Sign In CTA */}
+            {user ? (
+              <div className="flex items-center gap-2">
+                <span className="hidden sm:inline-block text-xs font-semibold text-emerald-400">
+                  @{user.name || user.email.split('@')[0]}
+                </span>
+                <button
+                  onClick={() => signOut()}
+                  className="px-3 py-1.5 rounded-xl border border-[var(--border)] text-xs font-semibold text-[var(--muted)] hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => openAuthModal('signin')}
+                className="px-3.5 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-hover)] text-xs font-semibold text-[var(--foreground)] hover:border-indigo-500/50 transition-colors cursor-pointer"
+              >
+                Sign In
+              </button>
+            )}
 
             {/* Primary Launch CTA */}
             <button

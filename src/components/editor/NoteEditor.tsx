@@ -39,8 +39,11 @@ import {
   MoreHorizontal,
   Pencil,
   Check,
+  Lock,
+  ShieldCheck,
   LucideIcon,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 const MODE_ICONS: Record<string, LucideIcon> = {
   BookOpen,
@@ -110,6 +113,7 @@ export function NoteEditor() {
     cloudStatus,
     setIsCloudSyncModalOpen,
   } = useApp();
+  const { user, canEditNote, openAuthModal } = useAuth();
 
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
@@ -122,6 +126,18 @@ export function NoteEditor() {
   const [activeRecallRevealed, setActiveRecallRevealed] = useState<Record<string, boolean>>({});
   const [breadcrumbDropdown, setBreadcrumbDropdown] = useState<'subject' | 'topic' | null>(null);
   const [clientNow, setClientNow] = useState<number | null>(null);
+
+  // Authorization check: "bina login ke koi kuch update nhi kr skta or bss apna likha content edit kr skte ho"
+  const canEdit = useMemo(() => {
+    return canEditNote(selectedNote);
+  }, [canEditNote, selectedNote]);
+
+  // If user cannot edit this note, force preview mode
+  useEffect(() => {
+    if (selectedNote && !canEdit) {
+      setMode('preview');
+    }
+  }, [selectedNote, canEdit]);
 
   // Study Modes State
   const [modes, setModes] = useState<NoteMode[]>([]);
@@ -224,6 +240,7 @@ export function NoteEditor() {
     currentModes = modes,
     currentActiveModeId = activeModeId
   ) => {
+    if (!canEdit) return;
     setSaveStatus('saving');
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
 
@@ -268,17 +285,23 @@ export function NoteEditor() {
     setEditingModeId(null);
     setIsAddingMode(false);
 
-    updateNote(selectedNote.id, {
-      title,
-      contentMarkdown: primaryContent,
-      modes: updatedModes,
-      activeModeId: target.id,
-    });
-    setSaveStatus('saved');
+    if (canEdit) {
+      updateNote(selectedNote.id, {
+        title,
+        contentMarkdown: primaryContent,
+        modes: updatedModes,
+        activeModeId: target.id,
+      });
+      setSaveStatus('saved');
+    }
   };
 
   const handleCreateNewMode = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to add study modes.' : 'You can only edit notes created by you.');
+      return;
+    }
     if (!newModeName.trim() || !selectedNote) return;
 
     const newMode: NoteMode = {
@@ -311,6 +334,10 @@ export function NoteEditor() {
 
   const handleStartEditMode = (m: NoteMode, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to configure modes.' : 'You can only edit notes created by you.');
+      return;
+    }
     setEditingModeId(m.id);
     setEditModeName(m.name);
     setEditModeIcon(m.icon || 'Zap');
@@ -318,6 +345,10 @@ export function NoteEditor() {
 
   const handleSaveEditMode = (modeId: string, e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to edit modes.' : 'You can only edit notes created by you.');
+      return;
+    }
     if (!editModeName.trim() || !selectedNote) return;
 
     const updatedModes = modes.map((m) =>
@@ -334,6 +365,10 @@ export function NoteEditor() {
 
   const handleDeleteMode = (modeId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to delete modes.' : 'You can only edit notes created by you.');
+      return;
+    }
     if (modes.length <= 1) {
       alert('A note must have at least one study mode.');
       return;
@@ -366,11 +401,19 @@ export function NoteEditor() {
   };
 
   const handleTitleChange = (newTitle: string) => {
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to edit this note.' : 'You can only edit notes created by you.');
+      return;
+    }
     setTitle(newTitle);
     triggerAutoSave(content, newTitle);
   };
 
   const handleContentChange = (newContent: string) => {
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to edit this note.' : 'You can only edit notes created by you.');
+      return;
+    }
     setContent(newContent);
     triggerAutoSave(newContent, title);
 
@@ -388,6 +431,10 @@ export function NoteEditor() {
   };
 
   const insertFormatting = (prefix: string, suffix = '', placeholder = '') => {
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to edit this note.' : 'You can only edit notes created by you.');
+      return;
+    }
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -467,6 +514,10 @@ export function NoteEditor() {
   // Add Tag
   const handleAddTag = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to add tags.' : 'You can only edit notes created by you.');
+      return;
+    }
     if (!newTagInput.trim() || !selectedNote) return;
     let tag = newTagInput.trim();
     if (!tag.startsWith('#')) tag = `#${tag}`;
@@ -481,6 +532,10 @@ export function NoteEditor() {
 
   // Remove Tag
   const handleRemoveTag = (tagToRemove: string) => {
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to remove tags.' : 'You can only edit notes created by you.');
+      return;
+    }
     if (!selectedNote) return;
     updateNote(selectedNote.id, {
       tags: selectedNote.tags.filter((t) => t !== tagToRemove),
@@ -489,6 +544,10 @@ export function NoteEditor() {
 
   const saveDsaDetails = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to edit DSA metadata.' : 'You can only edit notes created by you.');
+      return;
+    }
     if (selectedNote) {
       updateNote(selectedNote.id, {
         timeComplexity: timeComp,
@@ -744,10 +803,52 @@ export function NoteEditor() {
             ref={titleInputRef}
             type="text"
             value={title}
+            readOnly={!canEdit}
             onChange={(e) => handleTitleChange(e.target.value)}
+            onClick={() => {
+              if (!canEdit) {
+                openAuthModal('signin', !user ? 'Sign in to edit this note.' : 'You can only edit notes created by you.');
+              }
+            }}
             placeholder="Untitled Note..."
-            className="text-base sm:text-lg md:text-xl font-bold bg-transparent border-none outline-none text-[var(--foreground)] truncate w-full"
+            className={`text-base sm:text-lg md:text-xl font-bold bg-transparent border-none outline-none text-[var(--foreground)] truncate w-full ${
+              !canEdit ? 'cursor-not-allowed opacity-90' : ''
+            }`}
           />
+
+          {/* Author / Ownership Pill */}
+          {canEdit ? (
+            <div
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex-shrink-0"
+              title="You are the author of this note"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Your Note</span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() =>
+                openAuthModal(
+                  'signin',
+                  !user
+                    ? 'Sign in to edit notes.'
+                    : 'This note belongs to another user. You can only edit notes you created.'
+                )
+              }
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 transition-colors cursor-pointer flex-shrink-0"
+              title="Read-only mode: You can only edit your own notes"
+            >
+              <Lock className="w-3.5 h-3.5 text-amber-400" />
+              <span>
+                {user
+                  ? `Read-Only (@${
+                      selectedNote.authorEmail ? selectedNote.authorEmail.split('@')[0] : 'author'
+                    })`
+                  : 'Sign In to Edit'}
+              </span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -783,15 +884,31 @@ export function NoteEditor() {
           <div className="flex p-0.5 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] text-xs sm:text-sm shadow-inner">
             <button
               type="button"
-              onClick={() => setMode('write')}
+              onClick={() => {
+                if (!canEdit) {
+                  openAuthModal(
+                    'signin',
+                    !user
+                      ? 'Sign in to edit this note.'
+                      : 'You can only edit notes created by you.'
+                  );
+                  return;
+                }
+                setMode('write');
+              }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-semibold transition-all ${
                 mode === 'write'
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-[var(--muted)] hover:text-[var(--foreground)]'
               }`}
+              title={canEdit ? 'Edit File' : 'Locked: Sign in with author account to edit'}
             >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>Edit File</span>
+              {canEdit ? (
+                <Edit3 className="w-3.5 h-3.5" />
+              ) : (
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+              )}
+              <span>{canEdit ? 'Edit File' : 'Locked'}</span>
             </button>
             <button
               type="button"
@@ -832,12 +949,25 @@ export function NoteEditor() {
           {/* Delete */}
           <button
             onClick={() => {
+              if (!canEdit) {
+                openAuthModal(
+                  'signin',
+                  !user
+                    ? 'Sign in to delete notes.'
+                    : 'You can only delete notes created by you.'
+                );
+                return;
+              }
               if (confirm('Delete this note permanently?')) {
                 deleteNote(selectedNote.id);
               }
             }}
-            className="p-2 rounded-lg text-[var(--muted)] hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-            title="Delete Note"
+            className={`p-2 rounded-lg transition-colors ${
+              canEdit
+                ? 'text-[var(--muted)] hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer'
+                : 'opacity-40 text-[var(--muted)] hover:text-amber-400 cursor-not-allowed'
+            }`}
+            title={canEdit ? 'Delete Note' : 'Only note creator can delete this note'}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -866,35 +996,41 @@ export function NoteEditor() {
                   <span>{m.name}</span>
                 </button>
 
-                {/* Edit / Delete trigger button */}
-                <button
-                  type="button"
-                  onClick={(e) => handleStartEditMode(m, e)}
-                  className={`p-1 rounded text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-all cursor-pointer ${
-                    isActive ? 'opacity-80 hover:opacity-100 ml-0.5' : 'opacity-0 group-hover/mode:opacity-100 ml-0.5'
-                  }`}
-                  title={`Configure "${m.name}" mode`}
-                >
-                  <MoreHorizontal className="w-3.5 h-3.5" />
-                </button>
+                {/* Edit / Delete trigger button (Only for note author) */}
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleStartEditMode(m, e)}
+                    className={`p-1 rounded text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-all cursor-pointer ${
+                      isActive
+                        ? 'opacity-80 hover:opacity-100 ml-0.5'
+                        : 'opacity-0 group-hover/mode:opacity-100 ml-0.5'
+                    }`}
+                    title={`Configure "${m.name}" mode`}
+                  >
+                    <MoreHorizontal className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             );
           })}
 
           {/* + Add Custom Mode Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setIsAddingMode(true);
-              setNewModeName('');
-              setNewModeIcon('Zap');
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-[var(--border)] hover:border-indigo-500/50 hover:bg-[var(--surface)] text-xs font-semibold text-[var(--muted)] hover:text-indigo-400 transition-all cursor-pointer whitespace-nowrap ml-1"
-            title="Create Custom Study Mode"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>+ Add Mode</span>
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddingMode(true);
+                setNewModeName('');
+                setNewModeIcon('Zap');
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-[var(--border)] hover:border-indigo-500/50 hover:bg-[var(--surface)] text-xs font-semibold text-[var(--muted)] hover:text-indigo-400 transition-all cursor-pointer whitespace-nowrap ml-1"
+              title="Create Custom Study Mode"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ Add Mode</span>
+            </button>
+          )}
         </div>
 
         {/* Current Active Mode Badge */}
@@ -1301,10 +1437,13 @@ export function NoteEditor() {
             <textarea
               ref={textareaRef}
               value={content}
+              readOnly={!canEdit}
               onChange={(e) => handleContentChange(e.target.value)}
               onPaste={handlePaste}
               placeholder="Write notes here... (Tip: Paste screenshots directly with Ctrl+V, or type / for templates)"
-              className="w-full h-full min-h-[500px] bg-transparent resize-none outline-none font-mono text-sm sm:text-base leading-relaxed text-[var(--foreground)] placeholder:text-[var(--muted)]"
+              className={`w-full h-full min-h-[500px] bg-transparent resize-none outline-none font-mono text-sm sm:text-base leading-relaxed text-[var(--foreground)] placeholder:text-[var(--muted)] ${
+                !canEdit ? 'cursor-not-allowed opacity-90' : ''
+              }`}
             />
           </div>
         ) : (
@@ -1335,11 +1474,22 @@ export function NoteEditor() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => setMode('write')}
+                  onClick={() => {
+                    if (!canEdit) {
+                      openAuthModal(
+                        'signin',
+                        !user
+                          ? 'Sign in to write notes.'
+                          : 'You can only edit notes created by you.'
+                      );
+                      return;
+                    }
+                    setMode('write');
+                  }}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
-                  <span>Write notes for this mode</span>
+                  <span>{canEdit ? 'Write notes for this mode' : 'Sign in to write notes'}</span>
                 </button>
               </div>
             ) : (

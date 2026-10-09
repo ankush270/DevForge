@@ -1,6 +1,7 @@
 'use client';
 
 import { ThemeProvider } from '@/context/ThemeContext';
+import { AuthProvider } from '@/context/AuthContext';
 import { AppProvider, useApp } from '@/context/AppContext';
 import { AppShell } from '@/components/layout/AppShell';
 import { Dashboard } from '@/components/dashboard/Dashboard';
@@ -29,11 +30,13 @@ function MainContent() {
 export default function Home() {
   return (
     <ThemeProvider>
-      <AppProvider>
-        <AppShell>
-          <MainContent />
-        </AppShell>
-      </AppProvider>
+      <AuthProvider>
+        <AppProvider>
+          <AppShell>
+            <MainContent />
+          </AppShell>
+        </AppProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

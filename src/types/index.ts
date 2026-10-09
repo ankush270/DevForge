@@ -32,9 +32,17 @@ export interface NoteMode {
   contentMarkdown: string;
 }
 
+export interface AppUser {
+  id: string;
+  email: string;
+  name?: string;
+}
+
 export interface Note {
   id: string;
   topicId: string;
+  userId?: string; // Author ID
+  authorEmail?: string;
   title: string;
   contentMarkdown: string;
   modes?: NoteMode[];
@@ -62,6 +70,8 @@ export interface Topic {
 
 export interface Subject {
   id: string;
+  userId?: string; // Author ID
+  authorEmail?: string;
   title: string;
   icon: string; // Lucide icon name, e.g. "Cpu", "Database", "Network", "Binary"
   color: string; // Tailwind color, e.g. "indigo", "emerald", "amber", "cyan"

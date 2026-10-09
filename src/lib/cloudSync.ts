@@ -132,19 +132,22 @@ export async function checkSupabaseHealth(): Promise<CloudHealth> {
  */
 export async function pushToCloud(
   subjects: Subject[],
-  reviewLogs: ReviewLog[]
+  reviewLogs: ReviewLog[],
+  userId?: string
 ): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) {
     return { success: false, error: 'Supabase not configured' };
   }
 
   try {
+    const workspaceKey = userId ? `workspace_${userId}` : 'primary_workspace';
+
     // 1. Upsert consolidated state
     const { error: stateError } = await supabase
       .from('interview_os_state')
       .upsert(
         {
-          id: 'primary_workspace',
+          id: workspaceKey,
           subjects,
           review_logs: reviewLogs,
           updated_at: new Date().toISOString(),
@@ -208,7 +211,7 @@ export async function pushToCloud(
 /**
  * Pulls state from Supabase Cloud.
  */
-export async function pullFromCloud(): Promise<{
+export async function pullFromCloud(userId?: string): Promise<{
   success: boolean;
   data?: { subjects: Subject[]; reviewLogs: ReviewLog[] };
   error?: string;
@@ -218,11 +221,12 @@ export async function pullFromCloud(): Promise<{
   }
 
   try {
+    const workspaceKey = userId ? `workspace_${userId}` : 'primary_workspace';
     const { data, error } = await supabase
       .from('interview_os_state')
       .select('subjects, review_logs, updated_at')
-      .eq('id', 'primary_workspace')
-      .single();
+      .eq('id', workspaceKey)
+      .maybeSingle();
 
     if (error) {
       return { success: false, error: error.message };

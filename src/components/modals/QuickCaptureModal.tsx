@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import { X, Sparkles, Plus, Code, BookOpen } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { X, Sparkles, Plus, Code, BookOpen, Lock } from 'lucide-react';
 
 export function QuickCaptureModal() {
   const { isQuickCaptureOpen, setIsQuickCaptureOpen, subjects, addNote, addTopic, addSubject } = useApp();
+  const { user, requireAuth } = useAuth();
 
   const [title, setTitle] = useState('');
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
@@ -37,6 +39,10 @@ export function QuickCaptureModal() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!requireAuth('create notes')) {
+      setIsQuickCaptureOpen(false);
+      return;
+    }
     if (!title.trim()) return;
 
     let targetSubjectId = selectedSubjectId;

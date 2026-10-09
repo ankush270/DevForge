@@ -18,6 +18,7 @@ import {
   CloudHealth,
 } from '@/lib/cloudSync';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 import JSZip from 'jszip';
 
 export type CloudSyncStatus = 'synced' | 'syncing' | 'needs_setup' | 'offline' | 'error';
@@ -87,6 +88,8 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const { user, canEditNote, canEditSubject, requireAuth } = useAuth();
+
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [reviewLogs, setReviewLogs] = useState<ReviewLog[]>([]);
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
@@ -174,7 +177,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCloudStatus('needs_setup');
     } else {
       // Tables are verified in Supabase!
-      const cloudRes = await pullFromCloud();
+      const cloudRes = await pullFromCloud(user?.id);
       if (cloudRes.success && cloudRes.data && cloudRes.data.subjects && cloudRes.data.subjects.length > 0) {
         const cleanCloudSubs = cloudRes.data.subjects.filter((s: Subject) => !DUMMY_SUBJECT_IDS.has(s.id));
         setSubjects(cleanCloudSubs);
@@ -186,11 +189,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         // If cloud had old dummy subjects, immediately sync the cleaned version back
         if (cleanCloudSubs.length !== cloudRes.data.subjects.length) {
-          pushToCloud(cleanCloudSubs, cloudRes.data.reviewLogs || []);
+          pushToCloud(cleanCloudSubs, cloudRes.data.reviewLogs || [], user?.id);
         }
       } else {
         // Cloud is fresh or empty, push existing local notes
-        await pushToCloud(subjects, reviewLogs);
+        await pushToCloud(subjects, reviewLogs, user?.id);
         setLastSyncedAt(new Date());
         setCloudStatus('synced');
       }
@@ -200,7 +203,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const forcePushToCloud = async (): Promise<boolean> => {
     setCloudStatus('syncing');
-    const res = await pushToCloud(subjects, reviewLogs);
+    const res = await pushToCloud(subjects, reviewLogs, user?.id);
     if (res.success) {
       setCloudStatus('synced');
       setLastSyncedAt(new Date());
@@ -213,7 +216,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const forcePullFromCloud = async (): Promise<boolean> => {
     setCloudStatus('syncing');
-    const res = await pullFromCloud();
+    const res = await pullFromCloud(user?.id);
     if (res.success && res.data) {
       setSubjects(res.data.subjects);
       setReviewLogs(res.data.reviewLogs);
@@ -228,12 +231,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Initial cloud check after local hydration
+  // Initial cloud check after local hydration or user auth change
   useEffect(() => {
     if (isHydrated) {
       checkAndSyncCloud();
     }
-  }, [isHydrated]);
+  }, [isHydrated, user?.id]);
 
   // Debounced Auto-Sync to Supabase on edits
   useEffect(() => {
@@ -241,7 +244,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setCloudStatus('syncing');
     const timer = setTimeout(async () => {
-      const res = await pushToCloud(subjects, reviewLogs);
+      const res = await pushToCloud(subjects, reviewLogs, user?.id);
       if (res.success) {
         setCloudStatus('synced');
         setLastSyncedAt(new Date());
@@ -251,7 +254,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }, 1200);
 
     return () => clearTimeout(timer);
-  }, [subjects, reviewLogs, isHydrated, cloudHealth.hasTables]);
+  }, [subjects, reviewLogs, isHydrated, cloudHealth.hasTables, user?.id]);
 
   // Realtime Supabase Channel Listener for Multi-Device Sync
   useEffect(() => {
@@ -402,6 +405,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addSubject = (title: string, icon = 'Cpu', color = 'indigo'): Subject => {
+    if (!requireAuth('create a subject')) {
+      return {
+        id: `sub-${Date.now()}`,
+        title,
+        icon,
+        color,
+        orderIndex: subjects.length,
+        topics: [],
+        userId: user?.id,
+        authorEmail: user?.email,
+      };
+    }
+
     const newSubject: Subject = {
       id: `sub-${Date.now()}`,
       title,
@@ -409,6 +425,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       color,
       orderIndex: subjects.length,
       topics: [],
+      userId: user?.id,
+      authorEmail: user?.email,
     };
     setSubjects((prev) => [...prev, newSubject]);
     return newSubject;
@@ -418,6 +436,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     subjectId: string,
     updates: Partial<Omit<Subject, 'id' | 'topics'>>
   ) => {
+    const targetSubject = subjects.find((s) => s.id === subjectId);
+    if (targetSubject && !canEditSubject(targetSubject)) {
+      requireAuth('edit this subject');
+      return;
+    }
+
     setSubjects((prev) =>
       prev.map((s) => {
         if (s.id !== subjectId) return s;
@@ -430,6 +454,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteSubject = (subjectId: string) => {
+    const targetSubject = subjects.find((s) => s.id === subjectId);
+    if (targetSubject && !canEditSubject(targetSubject)) {
+      requireAuth('delete this subject');
+      return;
+    }
+
     setSubjects((prev) => prev.filter((s) => s.id !== subjectId));
     if (selectedSubjectId === subjectId) {
       setSelectedSubjectId(null);
@@ -437,6 +467,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addTopic = (subjectId: string, title: string): Topic => {
+    const targetSubject = subjects.find((s) => s.id === subjectId);
+    if (targetSubject && !canEditSubject(targetSubject)) {
+      requireAuth('add topics to this subject');
+      return { id: `top-${Date.now()}`, subjectId, title, orderIndex: 0, notes: [] };
+    }
+    if (!requireAuth('add topics')) {
+      return { id: `top-${Date.now()}`, subjectId, title, orderIndex: 0, notes: [] };
+    }
+
     const newTopic: Topic = {
       id: `top-${Date.now()}`,
       subjectId,
@@ -472,6 +511,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       masteryLevel: 'YELLOW',
       tags,
       isDsaProblem: isDsa,
+      userId: user?.id,
+      authorEmail: user?.email,
       lastOpenedAt: now,
       createdAt: now,
       updatedAt: now,
@@ -485,6 +526,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         lastReviewedAt: null,
       },
     };
+
+    if (!requireAuth('create notes')) {
+      return newNote;
+    }
 
     setSubjects((prev) =>
       prev.map((s) => ({
@@ -504,6 +549,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateNote = (noteId: string, updates: Partial<Note>) => {
+    const target = allNotes.find((n) => n.id === noteId);
+    if (target && !canEditNote(target)) {
+      requireAuth('edit this note');
+      return;
+    }
+
     setSubjects((prev) =>
       prev.map((s) => ({
         ...s,
@@ -511,7 +562,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...t,
           notes: t.notes.map((n) =>
             n.id === noteId
-              ? { ...n, ...updates, updatedAt: new Date().toISOString() }
+              ? {
+                  ...n,
+                  ...updates,
+                  userId: n.userId || user?.id,
+                  authorEmail: n.authorEmail || user?.email,
+                  updatedAt: new Date().toISOString(),
+                }
               : n
           ),
         })),
@@ -520,6 +577,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteNote = (noteId: string) => {
+    const target = allNotes.find((n) => n.id === noteId);
+    if (target && !canEditNote(target)) {
+      requireAuth('delete this note');
+      return;
+    }
+
     setSubjects((prev) =>
       prev.map((s) => ({
         ...s,
