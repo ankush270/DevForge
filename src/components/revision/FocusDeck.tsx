@@ -15,6 +15,7 @@ import {
   Layers,
   Award,
 } from 'lucide-react';
+import { isHtmlContent, markdownToHtml } from '@/lib/wysiwyg';
 
 export function FocusDeck() {
   const {
@@ -279,9 +280,14 @@ export function FocusDeck() {
           {/* Answer Section */}
           <div className="my-6">
             {isRevealed ? (
-              <div className="p-4 rounded-xl bg-[var(--surface-hover)]/70 border border-[var(--border)] text-sm sm:text-base text-[var(--foreground)] leading-relaxed whitespace-pre-wrap animate-in fade-in zoom-in-95 duration-200">
-                {recallAnswer}
-              </div>
+              <div
+                className="p-4 rounded-xl bg-[var(--surface-hover)]/70 border border-[var(--border)] text-sm sm:text-base text-[var(--foreground)] leading-relaxed animate-in fade-in zoom-in-95 duration-200 devforge-wysiwyg"
+                dangerouslySetInnerHTML={{
+                  __html: isHtmlContent(recallAnswer)
+                    ? recallAnswer
+                    : markdownToHtml(recallAnswer),
+                }}
+              />
             ) : (
               <div className="p-8 rounded-xl border border-dashed border-[var(--border)] text-center text-sm text-[var(--muted)]">
                 Press <kbd className="px-2 py-0.5 rounded bg-[var(--surface-hover)] border border-[var(--border)] font-mono text-xs">Spacebar</kbd> or Click anywhere on this card to reveal the answer.

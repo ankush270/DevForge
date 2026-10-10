@@ -66,3 +66,112 @@ body {
 code, pre, kbd {
   font-family: var(--font-app-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
+
+/* Visual WYSIWYG Editor typography & interactive elements */
+.devforge-wysiwyg:empty:before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  pointer-events: none;
+  display: block;
+}
+
+.devforge-wysiwyg h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--foreground);
+  line-height: 1.25;
+}
+
+.devforge-wysiwyg h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 1.125rem;
+  margin-bottom: 0.5rem;
+  color: var(--foreground);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.375rem;
+}
+
+.devforge-wysiwyg h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.375rem;
+  color: var(--foreground);
+}
+
+.devforge-wysiwyg p {
+  margin: 0.5rem 0;
+  line-height: 1.625;
+}
+
+.devforge-wysiwyg ul {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+  margin-top: 0.375rem;
+  margin-bottom: 0.375rem;
+}
+
+.devforge-wysiwyg ol {
+  list-style-type: decimal;
+  margin-left: 1.5rem;
+  margin-top: 0.375rem;
+  margin-bottom: 0.375rem;
+}
+
+.devforge-wysiwyg li {
+  margin: 0.25rem 0;
+  line-height: 1.5;
+}
+
+.devforge-wysiwyg blockquote {
+  border-left: 3px solid #6366f1;
+  padding-left: 1rem;
+  margin: 0.75rem 0;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.devforge-wysiwyg pre {
+  background-color: #0d0f17;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin: 0.75rem 0;
+  font-family: var(--font-app-mono), monospace;
+  font-size: 0.875rem;
+  color: #6ee7b7;
+  overflow-x: auto;
+}
+
+.devforge-wysiwyg table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+  background-color: var(--surface);
+  border-radius: 0.5rem;
+}
+
+.devforge-wysiwyg th {
+  background-color: var(--surface-hover);
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.devforge-wysiwyg td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  color: var(--foreground);
+}
+
+.devforge-wysiwyg td:focus,
+.devforge-wysiwyg th:focus {
+  outline: 2px solid rgba(99, 102, 241, 0.75);
+  background-color: rgba(99, 102, 241, 0.08);
+}
+

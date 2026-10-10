@@ -7,10 +7,18 @@ import { MermaidDiagram } from './MermaidDiagram';
 import {
   Bold,
   Italic,
+  Underline,
+  Strikethrough,
   Heading1,
   Heading2,
+  Heading3,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
   List,
   ListOrdered,
+  Quote,
   Code,
   Image as ImageIcon,
   HelpCircle,
@@ -44,7 +52,24 @@ import {
   Lock,
   ShieldCheck,
   LucideIcon,
+  Type,
 } from 'lucide-react';
+import mermaid from 'mermaid';
+import {
+  isHtmlContent,
+  markdownToHtml,
+  getActiveTableCell,
+  TableCellInfo,
+  insertTableAtCursor,
+  addTableRow,
+  addTableCol,
+  deleteTableRow,
+  deleteTableCol,
+  alignTableCol,
+  deleteTable,
+  insertRecallCard,
+  insertDiagram,
+} from '@/lib/wysiwyg';
 import { useAuth } from '@/context/AuthContext';
 
 const MODE_ICONS: Record<string, LucideIcon> = {
@@ -168,8 +193,12 @@ export function NoteEditor() {
   const [probUrl, setProbUrl] = useState('');
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [tableInfo, setTableInfo] = useState<TableCellInfo | null>(null);
+  const [editorViewMode, setEditorViewMode] = useState<'visual' | 'raw'>('visual');
 
   useEffect(() => {
     if (selectedNote) {
@@ -181,6 +210,7 @@ export function NoteEditor() {
       setIsInterviewPracticeMode(false);
       setIsAddingMode(false);
       setEditingModeId(null);
+      setTableInfo(null);
 
       // Initialize or load modes
       let noteModes = selectedNote.modes;
@@ -201,9 +231,22 @@ export function NoteEditor() {
       setActiveModeId(initialModeId);
 
       const active = noteModes.find((m) => m.id === initialModeId) || noteModes[0];
-      setContent(active.contentMarkdown || '');
+      const initialMarkdown = active.contentMarkdown || '';
+      setContent(initialMarkdown);
+      if (editorRef.current) {
+        editorRef.current.innerHTML = markdownToHtml(initialMarkdown);
+      }
     }
   }, [selectedNote?.id]);
+
+  // Synchronize editor innerHTML whenever mode toggles to write
+  useEffect(() => {
+    if (mode === 'write' && editorRef.current) {
+      editorRef.current.innerHTML = markdownToHtml(content);
+      const info = getActiveTableCell();
+      setTableInfo(info);
+    }
+  }, [mode]);
 
   // Close breadcrumb dropdown on outside click
   useEffect(() => {
@@ -286,7 +329,12 @@ export function NoteEditor() {
 
     setModes(updatedModes);
     setActiveModeId(target.id);
-    setContent(target.contentMarkdown || '');
+    const targetContent = target.contentMarkdown || '';
+    setContent(targetContent);
+    if (editorRef.current) {
+      editorRef.current.innerHTML = markdownToHtml(targetContent);
+    }
+    setTableInfo(null);
     setEditingModeId(null);
     setIsAddingMode(false);
 
@@ -324,6 +372,10 @@ export function NoteEditor() {
     setModes(updatedModes);
     setActiveModeId(newMode.id);
     setContent(newMode.contentMarkdown);
+    if (editorRef.current) {
+      editorRef.current.innerHTML = markdownToHtml(newMode.contentMarkdown);
+    }
+    setTableInfo(null);
     setIsAddingMode(false);
     setNewModeName('');
     setNewModeIcon('Zap');
@@ -390,6 +442,10 @@ export function NoteEditor() {
       nextContent = updatedModes[0].contentMarkdown || '';
       setActiveModeId(nextActiveId);
       setContent(nextContent);
+      if (editorRef.current) {
+        editorRef.current.innerHTML = markdownToHtml(nextContent);
+      }
+      setTableInfo(null);
     }
 
     setModes(updatedModes);
@@ -412,6 +468,162 @@ export function NoteEditor() {
     }
     setTitle(newTitle);
     triggerAutoSave(content, newTitle);
+  };
+
+  const updateTableContext = () => {
+    const info = getActiveTableCell();
+    setTableInfo(info);
+  };
+
+  const handleEditorInput = () => {
+    if (!canEdit || !editorRef.current) return;
+    const newHtml = editorRef.current.innerHTML;
+    setContent(newHtml);
+    triggerAutoSave(newHtml, title);
+    updateTableContext();
+  };
+
+  const executeFormat = (command: string, value: string | undefined = undefined) => {
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to edit this note.' : 'You can only edit notes created by you.');
+      return;
+    }
+    editorRef.current?.focus();
+    document.execCommand(command, false, value);
+    handleEditorInput();
+  };
+
+  const formatBlockTag = (tag: 'p' | 'h1' | 'h2' | 'h3' | 'blockquote' | 'pre') => {
+    executeFormat('formatBlock', `<${tag}>`);
+  };
+
+  const formatAlign = (align: 'justifyLeft' | 'justifyCenter' | 'justifyRight' | 'justifyFull') => {
+    executeFormat(align);
+  };
+
+  const handleInsertTable = (cols: number, rows: number) => {
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to edit this note.' : 'You can only edit notes created by you.');
+      return;
+    }
+    editorRef.current?.focus();
+    insertTableAtCursor(cols, rows);
+    setShowTableDropdown(false);
+    handleEditorInput();
+  };
+
+  const handleAddRow = (position: 'above' | 'below') => {
+    if (!tableInfo) return;
+    addTableRow(tableInfo.table, tableInfo.rowIndex, position);
+    handleEditorInput();
+  };
+
+  const handleAddCol = (position: 'left' | 'right') => {
+    if (!tableInfo) return;
+    addTableCol(tableInfo.table, tableInfo.colIndex, position);
+    handleEditorInput();
+  };
+
+  const handleDeleteRow = () => {
+    if (!tableInfo) return;
+    deleteTableRow(tableInfo.table, tableInfo.rowIndex);
+    handleEditorInput();
+  };
+
+  const handleDeleteCol = () => {
+    if (!tableInfo) return;
+    deleteTableCol(tableInfo.table, tableInfo.colIndex);
+    handleEditorInput();
+  };
+
+  const handleAlignCol = (align: 'left' | 'center' | 'right') => {
+    if (!tableInfo) return;
+    alignTableCol(tableInfo.table, tableInfo.colIndex, align);
+    handleEditorInput();
+  };
+
+  const handleDeleteTable = () => {
+    if (!tableInfo) return;
+    deleteTable(tableInfo.table);
+    setTableInfo(null);
+    handleEditorInput();
+  };
+
+  const handleInsertRecallCard = () => {
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to edit this note.' : 'You can only edit notes created by you.');
+      return;
+    }
+    editorRef.current?.focus();
+    insertRecallCard();
+    handleEditorInput();
+  };
+
+  const handleInsertDiagram = (type: 'architecture' | 'er' | 'sequence') => {
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to edit this note.' : 'You can only edit notes created by you.');
+      return;
+    }
+    setShowDiagramDropdown(false);
+    editorRef.current?.focus();
+    insertDiagram(type);
+    handleEditorInput();
+  };
+
+  const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Tab inside Table navigation
+    if (e.key === 'Tab') {
+      const info = getActiveTableCell();
+      if (info) {
+        e.preventDefault();
+        const { cell, table } = info;
+        const allCells = Array.from(table.querySelectorAll('th, td')) as HTMLElement[];
+        const currentIndex = allCells.indexOf(cell);
+
+        if (e.shiftKey) {
+          if (currentIndex > 0) {
+            allCells[currentIndex - 1].focus();
+          }
+        } else {
+          if (currentIndex < allCells.length - 1) {
+            allCells[currentIndex + 1].focus();
+          } else {
+            // Last cell: auto-append a new row
+            addTableRow(table, table.rows.length - 1, 'below');
+            handleEditorInput();
+            setTimeout(() => {
+              const updatedCells = Array.from(table.querySelectorAll('th, td')) as HTMLElement[];
+              updatedCells[currentIndex + 1]?.focus();
+            }, 10);
+          }
+        }
+        updateTableContext();
+        return;
+      }
+    }
+  };
+
+  const handleEditorPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          const reader = new FileReader();
+          reader.onload = (uploadEvent) => {
+            const dataUrl = uploadEvent.target?.result as string;
+            const imgHtml = `<div class="my-3 rounded-xl overflow-hidden border border-[var(--border)] max-w-2xl"><img src="${dataUrl}" alt="Pasted Screenshot" class="max-w-full h-auto object-contain mx-auto" /></div><p><br></p>`;
+            document.execCommand('insertHTML', false, imgHtml);
+            handleEditorInput();
+          };
+          reader.readAsDataURL(file);
+          return;
+        }
+      }
+    }
   };
 
   const handleContentChange = (newContent: string) => {
@@ -1272,238 +1484,540 @@ export function NoteEditor() {
 
       {/* 🛠️ Zero-Markdown Visual Formatting Toolbar (Only in Edit mode) */}
       {mode === 'write' && (
-        <div className="px-3 py-2 border-b border-[var(--border)] bg-[var(--surface-hover)]/40 flex items-center gap-1.5 overflow-x-auto text-[var(--foreground)] animate-in fade-in duration-100">
-          <button
-            onClick={() => insertFormatting('**', '**', 'bold text')}
-            className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs sm:text-sm font-bold cursor-pointer"
-            title="Bold"
-          >
-            <Bold className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => insertFormatting('*', '*', 'italic text')}
-            className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs sm:text-sm italic cursor-pointer"
-            title="Italic"
-          >
-            <Italic className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => insertFormatting('\n# ', '\n', 'Heading 1')}
-            className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs sm:text-sm cursor-pointer"
-            title="Heading 1"
-          >
-            <Heading1 className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => insertFormatting('\n## ', '\n', 'Heading 2')}
-            className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs sm:text-sm cursor-pointer"
-            title="Heading 2"
-          >
-            <Heading2 className="w-4 h-4" />
-          </button>
-
-          <div className="w-[1px] h-4 bg-[var(--border)] mx-1" />
-
-          <button
-            onClick={() => insertFormatting('\n- ', '\n', 'List item')}
-            className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs sm:text-sm cursor-pointer"
-            title="Bullet List"
-          >
-            <List className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => insertFormatting('\n1. ', '\n', 'List item')}
-            className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs sm:text-sm cursor-pointer"
-            title="Numbered List"
-          >
-            <ListOrdered className="w-4 h-4" />
-          </button>
-
-          <div className="w-[1px] h-4 bg-[var(--border)] mx-1" />
-
-          <button
-            onClick={() => insertFormatting('\n```cpp\n// Write solution here\n', '\n```\n')}
-            className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs sm:text-sm cursor-pointer"
-            title="Code Block"
-          >
-            <Code className="w-4 h-4" />
-          </button>
-
-          {/* Diagram Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setShowDiagramDropdown((prev) => !prev)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-[var(--surface-hover)] text-xs sm:text-sm text-indigo-400 font-semibold cursor-pointer"
-            >
-              <Layers className="w-4 h-4" />
-              <span>Diagram</span>
-              <ChevronDown className="w-3.5 h-3.5" />
-            </button>
-
-            {showDiagramDropdown && (
-              <div className="absolute top-full left-0 mt-1 w-56 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xl p-1.5 z-30 space-y-0.5">
+        <div className="border-b border-[var(--border)] bg-[var(--surface-hover)]/40 text-[var(--foreground)] animate-in fade-in duration-100 select-none">
+          {/* Main Formatting Toolbar */}
+          <div className="px-3 py-2 flex items-center justify-between gap-2 overflow-x-auto">
+            <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+              {/* Text Block Dropdown / Format Block */}
+              <div className="flex items-center gap-0.5 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-0.5 shadow-2xs">
                 <button
-                  onClick={() => insertDiagramTemplate('architecture')}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs sm:text-sm hover:bg-[var(--surface-hover)] cursor-pointer"
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => formatBlockTag('p')}
+                  className="px-2 py-1 rounded text-xs font-medium hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
+                  title="Normal Text / Paragraph"
                 >
-                  📐 Microservice / Arch Flow
+                  Text
                 </button>
                 <button
-                  onClick={() => insertDiagramTemplate('er')}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs sm:text-sm hover:bg-[var(--surface-hover)] cursor-pointer"
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => formatBlockTag('h1')}
+                  className="px-2 py-1 rounded text-xs font-bold hover:bg-[var(--surface-hover)] text-indigo-400 transition-colors cursor-pointer"
+                  title="Heading 1 (Large)"
                 >
-                  🗄️ Database ER Diagram
+                  H1
                 </button>
                 <button
-                  onClick={() => insertDiagramTemplate('sequence')}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs sm:text-sm hover:bg-[var(--surface-hover)] cursor-pointer"
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => formatBlockTag('h2')}
+                  className="px-2 py-1 rounded text-xs font-bold hover:bg-[var(--surface-hover)] text-indigo-300 transition-colors cursor-pointer"
+                  title="Heading 2 (Medium)"
                 >
-                  🔄 Sequence / User Flow
+                  H2
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => formatBlockTag('h3')}
+                  className="px-2 py-1 rounded text-xs font-bold hover:bg-[var(--surface-hover)] text-indigo-200 transition-colors cursor-pointer"
+                  title="Heading 3 (Small)"
+                >
+                  H3
                 </button>
               </div>
-            )}
-          </div>
 
-          {/* Table Inserter with Custom Dimensions Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowTableDropdown((prev) => !prev);
-                setShowDiagramDropdown(false);
-              }}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-[var(--surface-hover)] text-xs sm:text-sm text-sky-400 font-semibold cursor-pointer"
-              title="Configure & Insert Custom Table"
-            >
-              <Table className="w-4 h-4" />
-              <span>Table</span>
-              <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-            </button>
+              <div className="w-[1px] h-4 bg-[var(--border)] mx-0.5 hidden sm:block" />
 
-            {showTableDropdown && (
-              <div className="absolute top-full left-0 mt-1 w-64 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-2xl p-3 z-30 space-y-3 animate-in fade-in zoom-in-95 duration-100">
-                <div className="flex items-center justify-between border-b border-[var(--border)] pb-1.5">
-                  <span className="text-xs font-bold text-[var(--foreground)]">Custom Table Size</span>
-                  <button
-                    onClick={() => setShowTableDropdown(false)}
-                    className="text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                {/* Quick Presets */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold uppercase text-[var(--muted)] tracking-wider">Quick Presets</span>
-                  <div className="grid grid-cols-3 gap-1.5 text-[11px] font-mono">
-                    <button
-                      onClick={() => insertCustomTable(2, 3)}
-                      className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-hover)] hover:border-sky-500/50 hover:text-sky-400 text-center cursor-pointer"
-                      title="2 Columns x 3 Rows (Comparison)"
-                    >
-                      2 × 3
-                    </button>
-                    <button
-                      onClick={() => insertCustomTable(3, 3)}
-                      className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-hover)] hover:border-sky-500/50 hover:text-sky-400 text-center cursor-pointer"
-                      title="3 Columns x 3 Rows (Standard)"
-                    >
-                      3 × 3
-                    </button>
-                    <button
-                      onClick={() => insertCustomTable(4, 4)}
-                      className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-hover)] hover:border-sky-500/50 hover:text-sky-400 text-center cursor-pointer"
-                      title="4 Columns x 4 Rows (Detailed Matrix)"
-                    >
-                      4 × 4
-                    </button>
-                  </div>
-                </div>
-
-                {/* Custom Dimensions Stepper */}
-                <div className="space-y-2 pt-1 border-t border-[var(--border)]">
-                  <span className="text-[10px] font-bold uppercase text-[var(--muted)] tracking-wider">Pick Exact Dimensions</span>
-                  
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[var(--muted)]">Columns (1-10):</span>
-                    <div className="flex items-center gap-1.5 font-mono">
-                      <button
-                        onClick={() => setCustomCols((prev) => Math.max(1, prev - 1))}
-                        className="w-5 h-5 rounded bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
-                      >
-                        -
-                      </button>
-                      <span className="w-5 text-center font-bold text-[var(--foreground)]">{customCols}</span>
-                      <button
-                        onClick={() => setCustomCols((prev) => Math.min(10, prev + 1))}
-                        className="w-5 h-5 rounded bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[var(--muted)]">Rows (1-30):</span>
-                    <div className="flex items-center gap-1.5 font-mono">
-                      <button
-                        onClick={() => setCustomRows((prev) => Math.max(1, prev - 1))}
-                        className="w-5 h-5 rounded bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
-                      >
-                        -
-                      </button>
-                      <span className="w-5 text-center font-bold text-[var(--foreground)]">{customRows}</span>
-                      <button
-                        onClick={() => setCustomRows((prev) => Math.min(30, prev + 1))}
-                        className="w-5 h-5 rounded bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
+              {/* Inline Formatting (Zero Markdown Characters) */}
+              <div className="flex items-center gap-0.5 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-0.5 shadow-2xs">
                 <button
-                  onClick={() => insertCustomTable(customCols, customRows)}
-                  className="w-full py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs transition-colors cursor-pointer"
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => executeFormat('bold')}
+                  className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs font-bold cursor-pointer transition-colors"
+                  title="Bold (Ctrl+B)"
                 >
-                  Insert Table ({customCols} Cols × {customRows} Rows)
+                  <Bold className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => executeFormat('italic')}
+                  className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs italic cursor-pointer transition-colors"
+                  title="Italic (Ctrl+I)"
+                >
+                  <Italic className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => executeFormat('underline')}
+                  className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs underline cursor-pointer transition-colors"
+                  title="Underline (Ctrl+U)"
+                >
+                  <Underline className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => executeFormat('strikeThrough')}
+                  className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs line-through cursor-pointer transition-colors"
+                  title="Strikethrough"
+                >
+                  <Strikethrough className="w-3.5 h-3.5" />
                 </button>
               </div>
-            )}
+
+              <div className="w-[1px] h-4 bg-[var(--border)] mx-0.5 hidden sm:block" />
+
+              {/* Text Alignment (Directly solves alignment overhead) */}
+              <div className="flex items-center gap-0.5 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-0.5 shadow-2xs">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => formatAlign('justifyLeft')}
+                  className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs cursor-pointer transition-colors"
+                  title="Align Left"
+                >
+                  <AlignLeft className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => formatAlign('justifyCenter')}
+                  className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs cursor-pointer transition-colors"
+                  title="Align Center"
+                >
+                  <AlignCenter className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => formatAlign('justifyRight')}
+                  className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs cursor-pointer transition-colors"
+                  title="Align Right"
+                >
+                  <AlignRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="w-[1px] h-4 bg-[var(--border)] mx-0.5 hidden sm:block" />
+
+              {/* Lists & Quote */}
+              <div className="flex items-center gap-0.5 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-0.5 shadow-2xs">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => executeFormat('insertUnorderedList')}
+                  className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs cursor-pointer transition-colors"
+                  title="Bullet List"
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => executeFormat('insertOrderedList')}
+                  className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs cursor-pointer transition-colors"
+                  title="Numbered List"
+                >
+                  <ListOrdered className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => formatBlockTag('blockquote')}
+                  className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs cursor-pointer transition-colors"
+                  title="Quote / Callout"
+                >
+                  <Quote className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => formatBlockTag('pre')}
+                  className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs cursor-pointer transition-colors"
+                  title="Code Block"
+                >
+                  <Code className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="w-[1px] h-4 bg-[var(--border)] mx-0.5 hidden sm:block" />
+
+              {/* Visual Table Inserter with Custom Dimensions */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTableDropdown((prev) => !prev);
+                    setShowDiagramDropdown(false);
+                  }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all shadow-2xs ${
+                    showTableDropdown
+                      ? 'bg-sky-500/20 text-sky-400 border-sky-500/40'
+                      : 'bg-[var(--surface)] text-sky-400 border-[var(--border)] hover:bg-[var(--surface-hover)]'
+                  }`}
+                  title="Insert Interactive Visual Table"
+                >
+                  <Table className="w-3.5 h-3.5" />
+                  <span>Table</span>
+                  <ChevronDown className="w-3 h-3 opacity-70" />
+                </button>
+
+                {showTableDropdown && (
+                  <div className="absolute top-full left-0 mt-1 w-64 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-2xl p-3 z-30 space-y-3 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="flex items-center justify-between border-b border-[var(--border)] pb-1.5">
+                      <span className="text-xs font-bold text-[var(--foreground)]">Create Visual Table</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowTableDropdown(false)}
+                        className="text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Quick Presets */}
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold uppercase text-[var(--muted)] tracking-wider">
+                        Quick Presets
+                      </span>
+                      <div className="grid grid-cols-3 gap-1.5 text-[11px] font-mono">
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleInsertTable(2, 3)}
+                          className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-hover)] hover:border-sky-500/50 hover:text-sky-400 text-center cursor-pointer transition-colors"
+                          title="2 Columns × 3 Rows"
+                        >
+                          2 × 3
+                        </button>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleInsertTable(3, 3)}
+                          className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-hover)] hover:border-sky-500/50 hover:text-sky-400 text-center cursor-pointer transition-colors"
+                          title="3 Columns × 3 Rows"
+                        >
+                          3 × 3
+                        </button>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleInsertTable(4, 4)}
+                          className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-hover)] hover:border-sky-500/50 hover:text-sky-400 text-center cursor-pointer transition-colors"
+                          title="4 Columns × 4 Rows"
+                        >
+                          4 × 4
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Custom Dimensions Stepper */}
+                    <div className="space-y-2 pt-1 border-t border-[var(--border)]">
+                      <span className="text-[10px] font-bold uppercase text-[var(--muted)] tracking-wider">
+                        Pick Exact Dimensions
+                      </span>
+
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[var(--muted)]">Columns (1-10):</span>
+                        <div className="flex items-center gap-1.5 font-mono">
+                          <button
+                            type="button"
+                            onClick={() => setCustomCols((prev) => Math.max(1, prev - 1))}
+                            className="w-5 h-5 rounded bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <span className="w-5 text-center font-bold text-[var(--foreground)]">
+                            {customCols}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setCustomCols((prev) => Math.min(10, prev + 1))}
+                            className="w-5 h-5 rounded bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[var(--muted)]">Rows (1-30):</span>
+                        <div className="flex items-center gap-1.5 font-mono">
+                          <button
+                            type="button"
+                            onClick={() => setCustomRows((prev) => Math.max(1, prev - 1))}
+                            className="w-5 h-5 rounded bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <span className="w-5 text-center font-bold text-[var(--foreground)]">
+                            {customRows}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setCustomRows((prev) => Math.min(30, prev + 1))}
+                            className="w-5 h-5 rounded bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleInsertTable(customCols, customRows)}
+                      className="w-full py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs transition-colors cursor-pointer shadow-sm shadow-sky-600/30"
+                    >
+                      Insert Table ({customCols} Cols × {customRows} Rows)
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Diagram Inserter */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDiagramDropdown((prev) => !prev);
+                    setShowTableDropdown(false);
+                  }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all shadow-2xs ${
+                    showDiagramDropdown
+                      ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40'
+                      : 'bg-[var(--surface)] text-indigo-400 border-[var(--border)] hover:bg-[var(--surface-hover)]'
+                  }`}
+                  title="Insert Visual Mermaid Diagram"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Diagram</span>
+                  <ChevronDown className="w-3 h-3 opacity-70" />
+                </button>
+
+                {showDiagramDropdown && (
+                  <div className="absolute top-full left-0 mt-1 w-56 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xl p-1.5 z-30 space-y-0.5">
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleInsertDiagram('architecture')}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-[var(--surface-hover)] cursor-pointer"
+                    >
+                      📐 Microservice / Arch Flow
+                    </button>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleInsertDiagram('er')}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-[var(--surface-hover)] cursor-pointer"
+                    >
+                      🗄️ Database ER Diagram
+                    </button>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleInsertDiagram('sequence')}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-[var(--surface-hover)] cursor-pointer"
+                    >
+                      🔄 Sequence / User Flow
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Active Recall Card Inserter */}
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={handleInsertRecallCard}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-hover)] text-xs text-amber-400 font-semibold cursor-pointer transition-colors shadow-2xs"
+                title="Insert Visual Active Recall Box"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span>Recall Box</span>
+              </button>
+
+              {/* Image Attachment */}
+              <label
+                className="p-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-hover)] text-xs cursor-pointer shadow-2xs"
+                title="Attach Image / Screenshot"
+              >
+                <ImageIcon className="w-3.5 h-3.5 text-[var(--muted)] hover:text-[var(--foreground)]" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (loadEvt) => {
+                        const dataUrl = loadEvt.target?.result as string;
+                        const imgHtml = `<div class="my-3 rounded-xl overflow-hidden border border-[var(--border)] max-w-2xl"><img src="${dataUrl}" alt="Uploaded Image" class="max-w-full h-auto object-contain mx-auto" /></div><p><br></p>`;
+                        editorRef.current?.focus();
+                        document.execCommand('insertHTML', false, imgHtml);
+                        handleEditorInput();
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
+            {/* Visual vs Raw Code Toggle */}
+            <div className="flex items-center p-0.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs flex-shrink-0 shadow-inner">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditorViewMode('visual');
+                  setTimeout(() => {
+                    if (editorRef.current) {
+                      editorRef.current.innerHTML = markdownToHtml(content);
+                      updateTableContext();
+                    }
+                  }, 10);
+                }}
+                className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                  editorViewMode === 'visual'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-[var(--muted)] hover:text-[var(--foreground)]'
+                }`}
+                title="Visual WYSIWYG Mode (Notion style: real formatting, direct clickable cells)"
+              >
+                Visual
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditorViewMode('raw');
+                }}
+                className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                  editorViewMode === 'raw'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-[var(--muted)] hover:text-[var(--foreground)]'
+                }`}
+                title="Raw Code Mode (Inspect or edit raw HTML/Markdown)"
+              >
+                Raw / Code
+              </button>
+            </div>
           </div>
 
-          {/* Active Recall Inserter */}
-          <button
-            onClick={() =>
-              insertFormatting(
-                '\n:::recall[What is the key interview question here?]\nHere is the detailed answer that will be hidden until clicked or revealed during revision.\n:::\n'
-              )
-            }
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-[var(--surface-hover)] text-xs sm:text-sm text-amber-400 font-medium ml-1 cursor-pointer"
-          >
-            <HelpCircle className="w-4 h-4" />
-            <span>Active Recall</span>
-          </button>
-
-          {/* Image Attachment */}
-          <label className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs sm:text-sm cursor-pointer" title="Attach Image">
-            <ImageIcon className="w-4 h-4" />
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onload = (loadEvt) => {
-                    insertFormatting(`\n![Uploaded Image](${loadEvt.target?.result})\n`, '');
-                  };
-                  reader.readAsDataURL(file);
-                }
-              }}
-            />
-          </label>
+          {/* 📊 Interactive Table Action Bar (Appears when cursor is inside any table cell) */}
+          {tableInfo && editorViewMode === 'visual' && (
+            <div className="px-3 py-1.5 bg-sky-950/40 border-t border-sky-500/30 flex items-center justify-between gap-2 text-xs flex-wrap animate-in fade-in slide-in-from-top-1 duration-100">
+              <div className="flex items-center gap-2 text-sky-400 font-semibold">
+                <Table className="w-3.5 h-3.5" />
+                <span>
+                  Table: Row {tableInfo.rowIndex + 1}/{tableInfo.totalRows}, Col {tableInfo.colIndex + 1}/{tableInfo.totalCols}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 flex-wrap">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleAddRow('above')}
+                  className="px-2 py-0.5 rounded bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--foreground)] font-medium cursor-pointer"
+                  title="Insert Row Above"
+                >
+                  + Row Above
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleAddRow('below')}
+                  className="px-2 py-0.5 rounded bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--foreground)] font-medium cursor-pointer"
+                  title="Insert Row Below"
+                >
+                  + Row Below
+                </button>
+                <div className="w-[1px] h-3.5 bg-[var(--border)] mx-0.5" />
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleAddCol('left')}
+                  className="px-2 py-0.5 rounded bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--foreground)] font-medium cursor-pointer"
+                  title="Insert Column Left"
+                >
+                  + Col Left
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleAddCol('right')}
+                  className="px-2 py-0.5 rounded bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--foreground)] font-medium cursor-pointer"
+                  title="Insert Column Right"
+                >
+                  + Col Right
+                </button>
+                <div className="w-[1px] h-3.5 bg-[var(--border)] mx-0.5" />
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={handleDeleteRow}
+                  className="px-2 py-0.5 rounded hover:bg-rose-500/10 text-rose-400 border border-transparent hover:border-rose-500/30 cursor-pointer"
+                  title="Delete Current Row"
+                >
+                  - Row
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={handleDeleteCol}
+                  className="px-2 py-0.5 rounded hover:bg-rose-500/10 text-rose-400 border border-transparent hover:border-rose-500/30 cursor-pointer"
+                  title="Delete Current Column"
+                >
+                  - Col
+                </button>
+                <div className="w-[1px] h-3.5 bg-[var(--border)] mx-0.5" />
+                <span className="text-[var(--muted)] text-[11px]">Align Col:</span>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleAlignCol('left')}
+                  className="p-1 rounded hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
+                  title="Align Column Left"
+                >
+                  <AlignLeft className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleAlignCol('center')}
+                  className="p-1 rounded hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
+                  title="Align Column Center"
+                >
+                  <AlignCenter className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleAlignCol('right')}
+                  className="p-1 rounded hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
+                  title="Align Column Right"
+                >
+                  <AlignRight className="w-3.5 h-3.5" />
+                </button>
+                <div className="w-[1px] h-3.5 bg-[var(--border)] mx-0.5" />
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={handleDeleteTable}
+                  className="px-2 py-0.5 rounded bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 cursor-pointer font-medium"
+                  title="Delete Entire Table"
+                >
+                  Delete Table
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1516,54 +2030,60 @@ export function NoteEditor() {
               Quick Templates
             </span>
             <button
-              onClick={() => applySlashCommand('## Heading Title\n')}
+              onClick={() => {
+                formatBlockTag('h2');
+                setShowSlashMenu(false);
+              }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm hover:bg-[var(--surface-hover)] text-left cursor-pointer"
             >
               <Heading2 className="w-4 h-4 text-indigo-400" />
               <span>/heading (Heading 2)</span>
             </button>
             <button
-              onClick={() => applySlashCommand('- Bullet point\n')}
+              onClick={() => {
+                executeFormat('insertUnorderedList');
+                setShowSlashMenu(false);
+              }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm hover:bg-[var(--surface-hover)] text-left cursor-pointer"
             >
               <List className="w-4 h-4 text-emerald-400" />
               <span>/bullet (Bullet List)</span>
             </button>
             <button
-              onClick={() => applySlashCommand('```cpp\n// Code snippet\n```\n')}
+              onClick={() => {
+                formatBlockTag('pre');
+                setShowSlashMenu(false);
+              }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm hover:bg-[var(--surface-hover)] text-left cursor-pointer"
             >
               <Code className="w-4 h-4 text-blue-400" />
-              <span>/code (Code Snippet)</span>
+              <span>/code (Code Block)</span>
             </button>
             <button
-              onClick={() =>
-                applySlashCommand(
-                  '```mermaid\ngraph TD\n    A[Client] --> B[Server]\n    B --> C[(Database)]\n```\n'
-                )
-              }
+              onClick={() => {
+                handleInsertDiagram('architecture');
+                setShowSlashMenu(false);
+              }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm hover:bg-[var(--surface-hover)] text-left cursor-pointer"
             >
               <Layers className="w-4 h-4 text-indigo-400" />
               <span>/diagram (Architecture)</span>
             </button>
             <button
-              onClick={() =>
-                applySlashCommand(
-                  '| Column 1 | Column 2 | Column 3 |\n| :--- | :--- | :--- |\n| Data 1 | Data 2 | Data 3 |\n| Data 4 | Data 5 | Data 6 |\n\n'
-                )
-              }
+              onClick={() => {
+                handleInsertTable(3, 3);
+                setShowSlashMenu(false);
+              }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm hover:bg-[var(--surface-hover)] text-left cursor-pointer"
             >
               <Table className="w-4 h-4 text-sky-400" />
-              <span>/table (Markdown Table)</span>
+              <span>/table (Visual Interactive Table)</span>
             </button>
             <button
-              onClick={() =>
-                applySlashCommand(
-                  ':::recall[What is the interview question?]\nHere is the answer.\n:::\n'
-                )
-              }
+              onClick={() => {
+                handleInsertRecallCard();
+                setShowSlashMenu(false);
+              }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm hover:bg-[var(--surface-hover)] text-left cursor-pointer"
             >
               <HelpCircle className="w-4 h-4 text-amber-400" />
@@ -1572,20 +2092,37 @@ export function NoteEditor() {
           </div>
         )}
 
-        {/* 1. WRITE MODE: Clean, Full-Width Writing Canvas */}
+        {/* 1. WRITE MODE: Visual WYSIWYG or Raw Code */}
         {mode === 'write' ? (
           <div className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 w-full overflow-y-auto animate-in fade-in duration-150">
-            <textarea
-              ref={textareaRef}
-              value={content}
-              readOnly={!canEdit}
-              onChange={(e) => handleContentChange(e.target.value)}
-              onPaste={handlePaste}
-              placeholder="Write notes here... (Tip: Paste screenshots directly with Ctrl+V, or type / for templates)"
-              className={`w-full h-full min-h-[500px] bg-transparent resize-none outline-none font-mono text-sm sm:text-base leading-relaxed text-[var(--foreground)] placeholder:text-[var(--muted)] ${
-                !canEdit ? 'cursor-not-allowed opacity-90' : ''
-              }`}
-            />
+            {editorViewMode === 'visual' ? (
+              <div
+                ref={editorRef}
+                contentEditable={canEdit}
+                suppressContentEditableWarning
+                onInput={handleEditorInput}
+                onKeyUp={updateTableContext}
+                onMouseUp={updateTableContext}
+                onKeyDown={handleEditorKeyDown}
+                onPaste={handleEditorPaste}
+                data-placeholder="Start typing notes here... Click Bold to bold text, Table to create an interactive table, or type directly without any markdown symbols."
+                className={`devforge-wysiwyg flex-1 outline-none text-sm sm:text-base leading-relaxed text-[var(--foreground)] min-h-[500px] ${
+                  !canEdit ? 'cursor-not-allowed opacity-90' : ''
+                }`}
+              />
+            ) : (
+              <textarea
+                ref={textareaRef}
+                value={content}
+                readOnly={!canEdit}
+                onChange={(e) => handleContentChange(e.target.value)}
+                onPaste={handlePaste}
+                placeholder="Raw code view... (HTML or Markdown format)"
+                className={`w-full h-full min-h-[500px] bg-transparent resize-none outline-none font-mono text-sm sm:text-base leading-relaxed text-[var(--foreground)] placeholder:text-[var(--muted)] ${
+                  !canEdit ? 'cursor-not-allowed opacity-90' : ''
+                }`}
+              />
+            )}
           </div>
         ) : (
           /* 2. PREVIEW MODE: Clean, Full-Width Rendered Reading Canvas */
@@ -1754,6 +2291,43 @@ export function NoteEditor() {
 }
 
 /**
+ * ⚡ Live HTML Renderer with visual tables, active recall and Mermaid diagrams
+ */
+function HtmlRenderer({ html }: { html: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const diagramBlocks = containerRef.current.querySelectorAll('.devforge-diagram-block[data-type="mermaid"]');
+    diagramBlocks.forEach(async (block, idx) => {
+      const pre = block.querySelector('pre');
+      if (!pre) return;
+      const chartCode = pre.textContent || '';
+      if (!chartCode.trim()) return;
+
+      try {
+        const uniqueId = `mermaid-preview-${Date.now()}-${idx}`;
+        const { svg } = await mermaid.render(uniqueId, chartCode.trim());
+        const svgContainer = document.createElement('div');
+        svgContainer.className = 'my-4 flex justify-center overflow-x-auto p-4 bg-[#0d0f17] rounded-xl border border-indigo-500/20';
+        svgContainer.innerHTML = svg;
+        block.replaceWith(svgContainer);
+      } catch {
+        // Keep fallback pre block if syntax error
+      }
+    });
+  }, [html]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="devforge-wysiwyg space-y-2 leading-relaxed"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
+/**
  * ⚡ Live Markdown Renderer with Mermaid diagrams & Active Recall toggles
  */
 function MarkdownRenderer({
@@ -1771,6 +2345,11 @@ function MarkdownRenderer({
         No content written yet. Switch to "Edit File" to add notes.
       </div>
     );
+  }
+
+  // If content is already HTML, render via HtmlRenderer
+  if (isHtmlContent(markdown)) {
+    return <HtmlRenderer html={markdown} />;
   }
 
   const lines = markdown.split('\n');
