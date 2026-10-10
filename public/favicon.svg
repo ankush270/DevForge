@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="df-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="50%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="df-glow" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+  </defs>
+  <!-- Background Rounded Shield -->
+  <rect width="64" height="64" rx="14" fill="#0c1017" stroke="#1f293d" stroke-width="2" />
+  
+  <!-- Stylized Geometric Anvil / Forge Emblem -->
+  <!-- Top Hammer / Horn Bar -->
+  <path d="M 14 20 L 50 20 L 46 27 L 18 27 Z" fill="url(#df-grad)" />
+  
+  <!-- Waist & Central Node -->
+  <path d="M 24 27 L 40 27 L 36 37 L 28 37 Z" fill="url(#df-grad)" opacity="0.9" />
+  
+  <!-- Base Stand -->
+  <path d="M 18 37 L 46 37 L 52 46 L 12 46 Z" fill="url(#df-grad)" />
+  
+  <!-- Cyber Terminal Core Light / Spark Accent -->
+  <circle cx="32" cy="32" r="3.5" fill="#38bdf8" />
+  <polygon points="32,15 34,18 32,21 30,18" fill="url(#df-glow)" />
+</svg>

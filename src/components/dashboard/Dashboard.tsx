@@ -12,7 +12,6 @@ import {
   ArrowRight,
   TrendingUp,
   Target,
-  Sparkles,
   Layers,
   Plus,
 } from 'lucide-react';

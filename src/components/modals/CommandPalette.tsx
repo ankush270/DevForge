@@ -12,7 +12,7 @@ import {
   X,
   ArrowRight,
   Flame,
-  Sparkles,
+  Compass,
 } from 'lucide-react';
 
 export function CommandPalette() {
@@ -153,8 +153,8 @@ export function CommandPalette() {
                   }}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm hover:bg-[var(--surface-hover)] text-left group transition-colors cursor-pointer"
                 >
-                  <div className="flex items-center gap-2.5 text-amber-400">
-                    <Sparkles className="w-4 h-4" />
+                  <div className="flex items-center gap-2.5 text-sky-400">
+                    <Compass className="w-4 h-4" />
                     <span className="font-semibold text-[var(--foreground)]">Product Guide & Keyboard Shortcuts</span>
                   </div>
                   <span className="text-xs text-[var(--muted)] font-mono">📖 Guide</span>

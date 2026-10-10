@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/context/AuthContext';
-import { X, Sparkles, Plus, Code, BookOpen, Lock } from 'lucide-react';
+import { X, Plus, Code, BookOpen, Lock } from 'lucide-react';
 
 export function QuickCaptureModal() {
   const { isQuickCaptureOpen, setIsQuickCaptureOpen, subjects, addNote, addTopic, addSubject } = useApp();

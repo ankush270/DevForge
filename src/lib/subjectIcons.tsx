@@ -17,7 +17,7 @@ import {
   Globe,
   Smartphone,
   BookOpen,
-  Sparkles,
+  Users,
   Server,
   Folder,
   LucideIcon,
@@ -56,7 +56,7 @@ export const SUBJECT_ICON_OPTIONS: SubjectIconOption[] = [
   { id: 'Globe', label: 'Web & Distributed', icon: Globe },
   { id: 'Smartphone', label: 'Mobile Apps', icon: Smartphone },
   { id: 'Server', label: 'Backend & APIs', icon: Server },
-  { id: 'Sparkles', label: 'Behavioral & Tips', icon: Sparkles },
+  { id: 'Users', label: 'Behavioral & Leadership', icon: Users },
   { id: 'BookOpen', label: 'Theory & Books', icon: BookOpen },
   { id: 'Folder', label: 'General Topic', icon: Folder },
 ];
@@ -90,7 +90,7 @@ const ICON_COMPONENTS: Record<string, LucideIcon> = {
   Globe,
   Smartphone,
   Server,
-  Sparkles,
+  Users,
   BookOpen,
   Folder,
 };

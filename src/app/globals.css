@@ -7,27 +7,43 @@
   --surface-hover: #f1f5f9;
   --border: #e2e8f0;
   --muted: #64748b;
-  --accent: #6366f1;
-  --accent-light: #818cf8;
+  --accent: #0284c7;
+  --accent-light: #38bdf8;
+  --accent-purple: #6366f1;
 }
 
 .dark {
-  --background: #09090b;
-  --foreground: #f4f4f5;
-  --surface: #121215;
-  --surface-hover: #18181b;
-  --border: #27272a;
-  --muted: #a1a1aa;
-  --accent: #6366f1;
-  --accent-light: #a5b4fc;
+  /* Bespoke engineering console palette (obsidian slate - avoiding #09090b boilerplate) */
+  --background: #0b0f17;
+  --foreground: #f1f5f9;
+  --surface: #111722;
+  --surface-hover: #172030;
+  --border: #1e293b;
+  --muted: #94a3b8;
+  --accent: #38bdf8;
+  --accent-light: #7dd3fc;
+  --accent-purple: #818cf8;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-app-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Engineering blueprint dot-grid & line utilities (authentic dev tool aesthetic, not radial glow blobs) */
+.blueprint-grid {
+  background-size: 28px 28px;
+  background-image: 
+    linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+}
+
+.blueprint-dots {
+  background-size: 20px 20px;
+  background-image: radial-gradient(circle, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
 }
 
 /* Custom scrollbars for clean minimal dev-tool aesthetic */
@@ -39,14 +55,14 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(160, 160, 160, 0.2);
+  background: rgba(148, 163, 184, 0.25);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(160, 160, 160, 0.4);
+  background: rgba(148, 163, 184, 0.45);
 }
 
-/* Smooth code font */
+/* Smooth monospace font */
 code, pre, kbd {
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-app-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }

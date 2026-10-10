@@ -21,7 +21,7 @@ import {
   AlertCircle,
   FileText,
   Clock,
-  Sparkles,
+  Compass,
   Layers,
   Settings,
   Cloud,
@@ -418,7 +418,7 @@ export function Sidebar() {
           title="Product Guide, Features & Shortcuts"
         >
           <div className="flex items-center gap-2.5">
-            <Sparkles className="w-4 h-4 text-amber-400" />
+            <Compass className="w-4 h-4 text-sky-400" />
             <span>Guide & Shortcuts</span>
           </div>
           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">

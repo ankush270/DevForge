@@ -8,7 +8,6 @@ import {
   X,
   Flame,
   CheckCircle2,
-  Sparkles,
   ArrowRight,
   RotateCcw,
   BookOpen,

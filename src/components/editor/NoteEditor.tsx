@@ -18,7 +18,8 @@ import {
   Edit3,
   Trash2,
   ExternalLink,
-  Sparkles,
+  Bookmark,
+  FileCode2,
   ChevronRight,
   Layers,
   ChevronDown,
@@ -54,7 +55,7 @@ const MODE_ICONS: Record<string, LucideIcon> = {
   Shield,
   Flame,
   Layers,
-  Sparkles,
+  Bookmark,
 };
 
 const MODE_ICON_OPTIONS = [
@@ -66,7 +67,7 @@ const MODE_ICON_OPTIONS = [
   { id: 'Shield', label: 'Pitfalls & Edge Cases', icon: Shield },
   { id: 'Flame', label: 'High Priority Cram', icon: Flame },
   { id: 'Layers', label: 'System Architecture', icon: Layers },
-  { id: 'Sparkles', label: 'Summary & Cheat Sheet', icon: Sparkles },
+  { id: 'Bookmark', label: 'Summary & Cheat Sheet', icon: Bookmark },
 ];
 
 function getModeIcon(iconName?: string): LucideIcon {
@@ -570,7 +571,7 @@ export function NoteEditor() {
   if (!selectedNote) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-[var(--muted)]">
-        <Sparkles className="w-12 h-12 text-indigo-400 mb-3 opacity-60" />
+        <FileCode2 className="w-12 h-12 text-sky-400 mb-3 opacity-60" />
         <h3 className="text-base font-semibold text-[var(--foreground)]">No note selected</h3>
         <p className="text-xs max-w-sm mt-1">
           Select a note from the left sidebar or press <kbd className="font-mono bg-[var(--surface-hover)] px-1.5 py-0.5 rounded border border-[var(--border)]">Ctrl+N</kbd> to quick-capture a new topic.
