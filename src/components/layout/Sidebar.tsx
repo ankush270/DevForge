@@ -135,6 +135,7 @@ export function Sidebar() {
     addTopic,
     addNote,
     startRevisionQueue,
+    confirmAction,
   } = useApp();
 
   const {
@@ -235,9 +236,13 @@ export function Sidebar() {
       requireAuth('delete this subject');
       return;
     }
-    if (confirm(`Delete subject "${subjectTitle}" and all its topics/notes?`)) {
-      deleteSubject(subjectId);
-    }
+    confirmAction({
+      title: 'Delete Subject',
+      message: `Delete subject "${subjectTitle}" and all its topics/notes? This action cannot be undone.`,
+      confirmLabel: 'Delete Subject',
+      isDestructive: true,
+      onConfirm: () => deleteSubject(subjectId),
+    });
   };
 
   const handleCreateTopic = (subjectId: string) => {

@@ -10,6 +10,7 @@ import { InterviewSprintModal } from '@/components/modals/InterviewSprintModal';
 import { SettingsModal } from '@/components/modals/SettingsModal';
 import { CloudSyncModal } from '@/components/modals/CloudSyncModal';
 import { AuthModal } from '@/components/modals/AuthModal';
+import { ConfirmModal } from '@/components/modals/ConfirmModal';
 import { DevForgeLogo } from '@/components/common/DevForgeLogo';
 import { RetroWindowBar } from '@/components/common/RetroDeco';
 import { X, PanelLeft, LogIn } from 'lucide-react';
@@ -116,6 +117,7 @@ export function AppShell({ children }: AppShellProps) {
       <SettingsModal />
       <CloudSyncModal />
       <AuthModal />
+      <ConfirmModal />
     </div>
   );
 }

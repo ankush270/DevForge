@@ -154,6 +154,7 @@ export function NoteEditor() {
     setActiveView,
     cloudStatus,
     setIsCloudSyncModalOpen,
+    confirmAction,
   } = useApp();
   const { user, canEditNote, openAuthModal } = useAuth();
 
@@ -453,38 +454,49 @@ export function NoteEditor() {
       return;
     }
     if (modes.length <= 1) {
-      alert('A note must have at least one study mode.');
+      confirmAction({
+        title: 'Cannot Delete Mode',
+        message: 'A note must have at least one study mode.',
+        confirmLabel: 'Understood',
+        isDestructive: false,
+        onConfirm: () => {},
+      });
       return;
     }
     const modeToDelete = modes.find((m) => m.id === modeId);
-    if (!confirm(`Delete study mode "${modeToDelete?.name || ''}"?`)) return;
+    confirmAction({
+      title: 'Delete Study Mode',
+      message: `Delete study mode "${modeToDelete?.name || ''}"?`,
+      confirmLabel: 'Delete Mode',
+      isDestructive: true,
+      onConfirm: () => {
+        const updatedModes = modes.filter((m) => m.id !== modeId);
+        let nextActiveId = activeModeId;
+        let nextContent = content;
 
-    const updatedModes = modes.filter((m) => m.id !== modeId);
-    let nextActiveId = activeModeId;
-    let nextContent = content;
+        if (activeModeId === modeId) {
+          nextActiveId = updatedModes[0].id;
+          nextContent = updatedModes[0].contentMarkdown || '';
+          setActiveModeId(nextActiveId);
+          setContent(nextContent);
+          if (editorRef.current) {
+            editorRef.current.innerHTML = markdownToHtml(nextContent);
+          }
+          setTableInfo(null);
+        }
 
-    if (activeModeId === modeId) {
-      nextActiveId = updatedModes[0].id;
-      nextContent = updatedModes[0].contentMarkdown || '';
-      setActiveModeId(nextActiveId);
-      setContent(nextContent);
-      if (editorRef.current) {
-        editorRef.current.innerHTML = markdownToHtml(nextContent);
-      }
-      setTableInfo(null);
-    }
+        setModes(updatedModes);
+        setEditingModeId(null);
 
-    setModes(updatedModes);
-    setEditingModeId(null);
-
-    if (selectedNote) {
-      const depthMode = updatedModes.find((m) => m.id === 'depth') || updatedModes[0];
-      updateNote(selectedNote.id, {
-        contentMarkdown: depthMode ? depthMode.contentMarkdown : nextContent,
-        modes: updatedModes,
-        activeModeId: nextActiveId,
-      });
-    }
+        if (selectedNote) {
+          updateNote(selectedNote.id, {
+            modes: updatedModes,
+            activeModeId: nextActiveId,
+            contentMarkdown: nextContent,
+          });
+        }
+      },
+    });
   };
 
   const handleTitleChange = (newTitle: string) => {
@@ -1317,9 +1329,13 @@ export function NoteEditor() {
                 );
                 return;
               }
-              if (confirm('Delete this note permanently?')) {
-                deleteNote(selectedNote.id);
-              }
+              confirmAction({
+                title: 'Delete Note',
+                message: `Are you sure you want to delete "${selectedNote.title || 'this note'}" permanently? This action cannot be undone.`,
+                confirmLabel: 'Delete Note',
+                isDestructive: true,
+                onConfirm: () => deleteNote(selectedNote.id),
+              });
             }}
             className={`p-2 rounded-lg transition-colors ${
               canEdit

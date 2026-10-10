@@ -56,7 +56,8 @@ export function SettingsModal() {
         setImportStatus('Backup successfully restored!');
         setTimeout(() => setImportStatus(null), 3000);
       } else {
-        alert('Invalid JSON backup file format.');
+        setImportStatus('Error: Invalid JSON backup file format.');
+        setTimeout(() => setImportStatus(null), 4000);
       }
     };
     reader.readAsText(file);

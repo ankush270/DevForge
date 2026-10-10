@@ -83,6 +83,21 @@ interface AppContextType {
   exportDataAsJson: () => void;
   importDataFromJson: (jsonStr: string) => boolean;
   resetToDefaultData: () => void;
+
+  // In-App Confirmation (No browser alert/confirm)
+  confirmDialogState: (ConfirmOptions & { isOpen: boolean }) | null;
+  confirmAction: (options: ConfirmOptions) => void;
+  closeConfirmDialog: () => void;
+}
+
+export interface ConfirmOptions {
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  isDestructive?: boolean;
+  onConfirm: () => void;
+  onCancel?: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -104,6 +119,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [dailyReviewCap, setDailyReviewCapState] = useState(15);
   const [isHydrated, setIsHydrated] = useState(false);
+
+  // In-app Confirmation Dialog State (Replaces native browser popups)
+  const [confirmDialogState, setConfirmDialogState] = useState<(ConfirmOptions & { isOpen: boolean }) | null>(null);
+
+  const confirmAction = (options: ConfirmOptions) => {
+    setConfirmDialogState({
+      ...options,
+      isOpen: true,
+    });
+  };
+
+  const closeConfirmDialog = () => {
+    if (confirmDialogState?.onCancel) {
+      confirmDialogState.onCancel();
+    }
+    setConfirmDialogState(null);
+  };
 
   // Supabase Cloud Sync State
   const [cloudStatus, setCloudStatus] = useState<CloudSyncStatus>('offline');
@@ -734,17 +766,23 @@ is_dsa: ${note.isDsaProblem ?? false}
   };
 
   const resetToDefaultData = () => {
-    if (confirm('Clear workspace to completely empty state? This will delete all dummy data, notes, and review logs.')) {
-      setSubjects([]);
-      saveSubjectsToStorage([]);
-      setReviewLogs([]);
-      saveReviewLogsToStorage([]);
-      setSelectedNoteId(null);
-      setActiveView('dashboard');
-      if (cloudHealth.hasTables) {
-        pushToCloud([], []);
-      }
-    }
+    confirmAction({
+      title: 'Clear Entire Workspace',
+      message: 'Clear workspace to completely empty state? This will delete all dummy data, notes, and review logs.',
+      confirmLabel: 'Clear All Data',
+      isDestructive: true,
+      onConfirm: () => {
+        setSubjects([]);
+        saveSubjectsToStorage([]);
+        setReviewLogs([]);
+        saveReviewLogsToStorage([]);
+        setSelectedNoteId(null);
+        setActiveView('dashboard');
+        if (cloudHealth.hasTables) {
+          pushToCloud([], []);
+        }
+      },
+    });
   };
 
   return (
@@ -802,6 +840,9 @@ is_dsa: ${note.isDsaProblem ?? false}
         exportDataAsJson,
         importDataFromJson,
         resetToDefaultData,
+        confirmDialogState,
+        confirmAction,
+        closeConfirmDialog,
       }}
     >
       {children}
