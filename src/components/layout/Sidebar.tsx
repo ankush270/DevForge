@@ -349,9 +349,9 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* User Account / Guest Status Card */}
-      <div className="px-3 pt-2.5 pb-1">
-        {user ? (
+      {/* User Account Bar (Only shown when logged in) */}
+      {user && (
+        <div className="px-3 pt-2.5 pb-1">
           <div className="p-2.5 rounded-xl bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-between gap-2 shadow-sm">
             <div className="flex items-center gap-2.5 truncate">
               <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 uppercase shadow-sm shadow-indigo-600/30">
@@ -375,31 +375,8 @@ export function Sidebar() {
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
-        ) : (
-          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between gap-2 shadow-sm">
-            <div className="flex items-center gap-2 truncate">
-              <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center flex-shrink-0">
-                <Lock className="w-3.5 h-3.5" />
-              </div>
-              <div className="truncate">
-                <div className="text-xs font-bold text-amber-300">Guest Mode</div>
-                <div className="text-[10px] text-[var(--muted)]">Read-Only View</div>
-              </div>
-            </div>
-            <button
-              onClick={() =>
-                openAuthModal(
-                  'signin',
-                  'Sign in to create subjects and edit your notes.'
-                )
-              }
-              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-all cursor-pointer whitespace-nowrap"
-            >
-              Sign In
-            </button>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Quick Mission Actions */}
       <div className="p-3 border-b border-[var(--border)] space-y-1">

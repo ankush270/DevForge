@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { DevForgeLogo } from '@/components/common/DevForgeLogo';
 import { RetroWindowBar } from '@/components/common/RetroDeco';
-import { X, Lock, Mail, User, Key, ArrowRight, LockKeyhole, AlertCircle, Terminal } from 'lucide-react';
+import { X, Lock, Mail, User, Key, ArrowRight, LockKeyhole, AlertCircle } from 'lucide-react';
 
 export function AuthModal() {
   const {
@@ -51,13 +51,6 @@ export function AuthModal() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleDemoSignIn = async () => {
-    setIsLoading(true);
-    await signIn('demo.engineer@devforge.dev', 'DevForge123!');
-    setIsLoading(false);
-    closeAuthModal();
   };
 
   return (
@@ -201,27 +194,6 @@ export function AuthModal() {
             <span>{isLoading ? 'Authenticating...' : authModalMode === 'signin' ? 'Sign In to Workspace' : 'Create Free Account'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
-
-          {/* Quick Demo Login */}
-          <div className="pt-2 text-center">
-            <div className="relative my-2">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[var(--border)]" />
-              </div>
-              <div className="relative flex justify-center text-[10px] uppercase font-bold text-[var(--muted)]">
-                <span className="bg-[var(--surface)] px-2">Instant Developer Access</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleDemoSignIn}
-              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold border border-[var(--border)] hover:bg-[var(--surface-hover)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
-            >
-              <Terminal className="w-3.5 h-3.5 text-sky-400" />
-              <span>Launch Demo Engineer Session</span>
-            </button>
-          </div>
         </form>
 
         {/* Security Footer */}
