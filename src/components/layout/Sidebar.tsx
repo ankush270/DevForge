@@ -33,6 +33,7 @@ import {
   Lock,
   LogOut,
   User,
+  LogIn,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -303,6 +304,16 @@ export function Sidebar() {
           >
             <Search className="w-5 h-5" />
           </button>
+
+          <button
+            onClick={() => (user ? signOut() : openAuthModal('signin'))}
+            className={`p-2.5 rounded-lg transition-colors mt-2 ${
+              user ? 'text-indigo-400 hover:bg-indigo-500/10' : 'text-blue-500 hover:bg-blue-500/10'
+            }`}
+            title={user ? `Signed in as ${user.email} (Click to Sign Out)` : 'Sign In to Workspace'}
+          >
+            {user ? <User className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
+          </button>
         </div>
       </aside>
     );
@@ -331,8 +342,8 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* User Account Bar (Only shown when logged in) */}
-      {user && (
+      {/* User Account Bar / Sign In Button */}
+      {user ? (
         <div className="px-3 pt-2.5 pb-1">
           <div className="p-2.5 rounded-xl bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-between gap-2 shadow-sm">
             <div className="flex items-center gap-2.5 truncate">
@@ -357,6 +368,22 @@ export function Sidebar() {
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
+        </div>
+      ) : (
+        <div className="px-3 pt-2.5 pb-1">
+          <button
+            onClick={() => openAuthModal('signin')}
+            className="w-full p-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-between gap-2 shadow-[2px_2px_0px_0px_#000] border-2 border-black active:translate-y-0.5 transition-all cursor-pointer group"
+            title="Sign in with your email & password to edit notes"
+          >
+            <div className="flex items-center gap-2">
+              <LogIn className="w-4 h-4 text-white group-hover:translate-x-0.5 transition-transform" />
+              <span>Sign In / Register</span>
+            </div>
+            <span className="text-[10px] bg-black/25 px-2 py-0.5 rounded font-mono uppercase tracking-wider">
+              Login
+            </span>
+          </button>
         </div>
       )}
 
@@ -859,7 +886,17 @@ export function Sidebar() {
           )}
         </button>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
+          {!user && (
+            <button
+              onClick={() => openAuthModal('signin')}
+              className="px-2 py-1 rounded-md text-xs font-bold bg-blue-600/10 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors flex items-center gap-1 cursor-pointer border border-blue-500/30"
+              title="Sign In to DevForge"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Login</span>
+            </button>
+          )}
           <button
             onClick={() => setIsSettingsOpen(true)}
             className="p-1.5 rounded-md hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)] transition-colors"

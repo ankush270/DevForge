@@ -12,7 +12,8 @@ import { CloudSyncModal } from '@/components/modals/CloudSyncModal';
 import { AuthModal } from '@/components/modals/AuthModal';
 import { DevForgeLogo } from '@/components/common/DevForgeLogo';
 import { RetroWindowBar } from '@/components/common/RetroDeco';
-import { X, PanelLeft } from 'lucide-react';
+import { X, PanelLeft, LogIn } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -20,6 +21,7 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const { activeView, setIsSidebarCollapsed } = useApp();
+  const { user, openAuthModal } = useAuth();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   // Focus-Deck mode & Landing Page take over full screen with 0 distractions
@@ -80,8 +82,22 @@ export function AppShell({ children }: AppShellProps) {
             </button>
 
             <DevForgeLogo size="sm" showText={true} />
-
-            <div className="w-5" /> {/* Spacer */}
+            {user ? (
+              <div
+                className="w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center uppercase shadow-sm"
+                title={`Logged in as ${user.email}`}
+              >
+                {user.name ? user.name[0] : user.email[0]}
+              </div>
+            ) : (
+              <button
+                onClick={() => openAuthModal('signin')}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-600 text-white border border-black shadow-xs cursor-pointer active:translate-y-0.5"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
+            )}
           </header>
         )}
 

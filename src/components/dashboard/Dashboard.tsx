@@ -14,10 +14,14 @@ import {
   Target,
   Layers,
   Plus,
+  LogIn,
+  ShieldCheck,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { renderSubjectIcon } from '@/lib/subjectIcons';
 
 export function Dashboard() {
+  const { user, openAuthModal } = useAuth();
   const {
     subjects,
     reviewLogs,
@@ -122,11 +126,29 @@ export function Dashboard() {
       <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] via-[var(--surface)] to-indigo-950/20 p-6 sm:p-7 md:p-9 shadow-sm">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2.5">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20">
-              <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
-              <span>
-                {streak > 0 ? `${streak}-Day Revision Streak 🔥` : '0-Day Revision Streak (Complete today’s review to ignite! 🔥)'}
-              </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
+                <span>
+                  {streak > 0 ? `${streak}-Day Revision Streak 🔥` : '0-Day Revision Streak (Complete today’s review to ignite! 🔥)'}
+                </span>
+              </div>
+
+              {user ? (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Logged in: <strong>{user.name || user.email}</strong></span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => openAuthModal('signin')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-all cursor-pointer border border-black shadow-xs active:translate-y-0.5"
+                  title="Click to sign in"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Sign In</span>
+                </button>
+              )}
             </div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[var(--foreground)]">
               {totalNotesCount > 0 ? 'Welcome back, Engineer.' : 'Welcome to InterviewOS.'}
@@ -149,6 +171,16 @@ export function Dashboard() {
 
           {/* Action CTAs */}
           <div className="flex flex-wrap items-center gap-3">
+            {!user && (
+              <button
+                onClick={() => openAuthModal('signin')}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-[2px_2px_0px_0px_#000] border-2 border-black active:translate-y-0.5 transition-all cursor-pointer"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Sign In / Register</span>
+              </button>
+            )}
+
             {totalNotesCount === 0 ? (
               <button
                 onClick={() => setIsQuickCaptureOpen(true)}
