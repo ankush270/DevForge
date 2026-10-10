@@ -10,8 +10,6 @@ import {
   ChevronRight,
   ChevronDown,
   Plus,
-  Moon,
-  Sun,
   Sparkles,
   PanelLeftClose,
   PanelLeft,
@@ -147,7 +145,7 @@ export function Sidebar() {
     requireAuth,
   } = useAuth();
 
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
 
   const [expandedSubjects, setExpandedSubjects] = useState<Record<string, boolean>>({});
   const [expandedTopics, setExpandedTopics] = useState<Record<string, boolean>>({});
@@ -304,22 +302,6 @@ export function Sidebar() {
             title="Search (Ctrl + K)"
           >
             <Search className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="mt-auto flex flex-col gap-3 items-center">
-          <button
-            onClick={toggleTheme}
-            className="p-2.5 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
-            title={`Switch to ${theme === 'retro-y2k' ? 'Dark' : theme === 'dark' ? 'Light' : 'Retro Y2K'} Mode`}
-          >
-            {theme === 'retro-y2k' ? (
-              <Sparkles className="w-5 h-5 text-pink-500 animate-pulse" />
-            ) : theme === 'dark' ? (
-              <Sun className="w-5 h-5 text-amber-400" />
-            ) : (
-              <Moon className="w-5 h-5 text-indigo-400" />
-            )}
           </button>
         </div>
       </aside>
@@ -891,19 +873,6 @@ export function Sidebar() {
             title="Search (Ctrl + K)"
           >
             <Search className="w-4 h-4" />
-          </button>
-          <button
-            onClick={toggleTheme}
-            className="p-1.5 rounded-md hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
-            title={`Switch to ${theme === 'retro-y2k' ? 'Dark' : theme === 'dark' ? 'Light' : 'Retro Y2K'} Mode`}
-          >
-            {theme === 'retro-y2k' ? (
-              <Sparkles className="w-4 h-4 text-pink-500 animate-pulse" />
-            ) : theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-amber-400" />
-            ) : (
-              <Moon className="w-4 h-4 text-indigo-400" />
-            )}
           </button>
         </div>
       </div>

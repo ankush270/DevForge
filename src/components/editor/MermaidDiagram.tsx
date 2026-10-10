@@ -22,9 +22,9 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
     try {
       mermaid.initialize({
         startOnLoad: false,
-        theme: theme === 'dark' ? 'dark' : 'default',
+        theme: 'default',
         securityLevel: 'loose',
-        fontFamily: 'var(--font-geist-sans), sans-serif',
+        fontFamily: "'Press Start 2P', monospace",
       });
 
       const uniqueId = 'mermaid-' + Math.random().toString(36).substring(2, 9);

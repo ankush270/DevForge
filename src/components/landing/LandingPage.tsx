@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { DevForgeLogo } from '@/components/common/DevForgeLogo';
 import {
@@ -16,9 +15,6 @@ import {
   Keyboard,
   Search,
   Cloud,
-  Moon,
-  Sun,
-  Sparkles,
   RotateCcw,
   Cpu,
   FileText,
@@ -149,7 +145,6 @@ const SHORTCUTS: ShortcutItem[] = [
 
 export function LandingPage() {
   const { setActiveView, setIsCommandPaletteOpen } = useApp();
-  const { theme, toggleTheme } = useTheme();
   const { user, openAuthModal, signOut } = useAuth();
 
   const [activeFeatureTab, setActiveFeatureTab] = useState<'srs' | 'modes' | 'diagrams' | 'recall' | 'cloud' | 'dsa'>('modes');
@@ -213,21 +208,6 @@ export function LandingPage() {
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             </nav>
-
-            {/* Retro / Dark / Light Mode Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
-              title={`Switch to ${theme === 'retro-y2k' ? 'Dark' : theme === 'dark' ? 'Light' : 'Retro Y2K'} Mode`}
-            >
-              {theme === 'retro-y2k' ? (
-                <Sparkles className="w-4 h-4 text-pink-500 animate-pulse" />
-              ) : theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-400" />
-              ) : (
-                <Moon className="w-4 h-4 text-sky-400" />
-              )}
-            </button>
 
             {/* User Profile or Sign In CTA */}
             {user ? (

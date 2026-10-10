@@ -1,34 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Nunito:wght@400;600;700;800&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --surface: #ffffff;
-  --surface-hover: #f1f5f9;
-  --border: #e2e8f0;
-  --muted: #64748b;
-  --accent: #0284c7;
-  --accent-light: #38bdf8;
-  --accent-purple: #6366f1;
-}
-
-.dark {
-  /* Bespoke engineering console palette (obsidian slate - avoiding #09090b boilerplate) */
-  --background: #0b0f17;
-  --foreground: #f1f5f9;
-  --surface: #111722;
-  --surface-hover: #172030;
-  --border: #1e293b;
-  --muted: #94a3b8;
-  --accent: #38bdf8;
-  --accent-light: #7dd3fc;
-  --accent-purple: #818cf8;
-}
-
-/* CANONICAL RETRO Y2K BUBBLEGUM THEME (from Retro UI Skill) */
-html.retro-y2k,
+:root,
+html,
 .retro-y2k {
+  /* CANONICAL RETRO Y2K BUBBLEGUM THEME (Exclusive Platform Theme) */
   --background: #FF85C2;
   --background-grid: #FF6FAF;
   --surface: #FFF5DC;
@@ -47,10 +23,15 @@ html.retro-y2k,
 
 body {
   background-color: var(--background);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+  background-size: 32px 32px;
   color: var(--foreground);
-  font-family: var(--font-app-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 700;
   overflow-x: hidden;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  animation: screen-flicker 0.4s ease-out both;
 }
 
 /* Engineering blueprint dot-grid & line utilities (authentic dev tool aesthetic, not radial glow blobs) */
