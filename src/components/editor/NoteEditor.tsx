@@ -939,7 +939,7 @@ export function NoteEditor() {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--background)]">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--surface)]">
       {/* 🧭 Interactive Breadcrumbs Bar */}
       {breadcrumbs && (
         <div className="px-4 py-2 bg-[var(--surface)]/70 border-b border-[var(--border)]/70 flex items-center justify-between text-xs sm:text-sm text-[var(--muted)] relative z-20">
@@ -2402,7 +2402,7 @@ export function NoteEditor() {
 
         {/* 1. WRITE MODE: Visual WYSIWYG or Raw Code */}
         {mode === 'write' ? (
-          <div className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 w-full overflow-y-auto animate-in fade-in duration-150">
+          <div className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 w-full overflow-y-auto bg-[var(--surface)] animate-in fade-in duration-150">
             {editorViewMode === 'visual' ? (
               <div
                 ref={editorRef}
@@ -2434,7 +2434,7 @@ export function NoteEditor() {
           </div>
         ) : (
           /* 2. PREVIEW MODE: Clean, Full-Width Rendered Reading Canvas */
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 w-full animate-in fade-in duration-150">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 w-full bg-[var(--surface)] animate-in fade-in duration-150">
             {isInterviewPracticeMode && (
               <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs sm:text-sm text-amber-400 flex items-center justify-between">
                 <span>🎯 Interview Practice Mode Active: Content is blurred until clicked or hovered!</span>

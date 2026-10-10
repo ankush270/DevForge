@@ -319,7 +319,7 @@ export function Sidebar() {
           title="DevForge - Return to Mission Control"
         >
           <DevForgeLogo size="md" showText={true} />
-          {theme === 'retro-y2k' && <RetroSparkle size={15} className="text-[#FF3D9A]" />}
+          {theme === 'retro-y2k' && <RetroSparkle size={15} className="text-amber-400" />}
         </div>
 
         <button

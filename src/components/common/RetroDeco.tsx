@@ -4,7 +4,7 @@ import React from 'react';
 import { useTheme } from '@/context/ThemeContext';
 
 export function RetroSparkle({
-  className = 'text-[#FF3D9A]',
+  className = 'text-amber-400',
   size = 18,
 }: {
   className?: string;
