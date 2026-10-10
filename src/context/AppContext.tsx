@@ -74,7 +74,7 @@ interface AppContextType {
   addNote: (topicId: string, title: string, content?: string, tags?: string[], isDsa?: boolean) => Note;
   updateNote: (noteId: string, updates: Partial<Note>) => void;
   deleteNote: (noteId: string) => void;
-  openNote: (noteId: string) => void;
+  openNote: (noteId: string, modeId?: string) => void;
   recordReview: (noteId: string, rating: ReviewRating, timeSpentSeconds: number) => void;
   startRevisionQueue: (filterTag?: string) => void;
 
@@ -387,7 +387,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return currentStreak;
   }, [reviewLogs, isHydrated]);
 
-  const openNote = (noteId: string) => {
+  const openNote = (noteId: string, modeId?: string) => {
     setSelectedNoteId(noteId);
     setActiveView('editor');
 
@@ -397,7 +397,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         topics: s.topics.map((t) => ({
           ...t,
           notes: t.notes.map((n) =>
-            n.id === noteId ? { ...n, lastOpenedAt: new Date().toISOString() } : n
+            n.id === noteId
+              ? {
+                  ...n,
+                  lastOpenedAt: new Date().toISOString(),
+                  ...(modeId ? { activeModeId: modeId } : {}),
+                }
+              : n
           ),
         })),
       }))
