@@ -22,6 +22,7 @@ import {
   FileCode2,
   ChevronRight,
   Layers,
+  Table,
   ChevronDown,
   X,
   Target,
@@ -121,6 +122,9 @@ export function NoteEditor() {
   const [mode, setMode] = useState<'write' | 'preview'>('preview');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving'>('saved');
   const [showDiagramDropdown, setShowDiagramDropdown] = useState(false);
+  const [showTableDropdown, setShowTableDropdown] = useState(false);
+  const [customCols, setCustomCols] = useState(3);
+  const [customRows, setCustomRows] = useState(3);
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [showDsaEditor, setShowDsaEditor] = useState(false);
   const [isInterviewPracticeMode, setIsInterviewPracticeMode] = useState(false);
@@ -453,6 +457,23 @@ export function NoteEditor() {
       textarea.focus();
       textarea.setSelectionRange(start + prefix.length, start + prefix.length + selected.length);
     }, 10);
+  };
+
+  const insertCustomTable = (cols: number, rows: number) => {
+    const safeCols = Math.max(1, Math.min(10, cols));
+    const safeRows = Math.max(1, Math.min(30, rows));
+
+    const headers = Array.from({ length: safeCols }, (_, idx) => `Column ${idx + 1}`).join(' | ');
+    const separators = Array.from({ length: safeCols }, () => ':---').join(' | ');
+    const rowLines = Array.from({ length: safeRows }, (_, rIdx) =>
+      Array.from({ length: safeCols }, (_, cIdx) => `Data ${rIdx + 1}.${cIdx + 1}`).join(' | ')
+    )
+      .map((r) => `| ${r} |`)
+      .join('\n');
+
+    const tableMarkdown = `\n| ${headers} |\n| ${separators} |\n${rowLines}\n\n`;
+    insertFormatting(tableMarkdown);
+    setShowTableDropdown(false);
   };
 
   const applySlashCommand = (snippet: string) => {
@@ -1343,6 +1364,114 @@ export function NoteEditor() {
             )}
           </div>
 
+          {/* Table Inserter with Custom Dimensions Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowTableDropdown((prev) => !prev);
+                setShowDiagramDropdown(false);
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-[var(--surface-hover)] text-xs sm:text-sm text-sky-400 font-semibold cursor-pointer"
+              title="Configure & Insert Custom Table"
+            >
+              <Table className="w-4 h-4" />
+              <span>Table</span>
+              <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+            </button>
+
+            {showTableDropdown && (
+              <div className="absolute top-full left-0 mt-1 w-64 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-2xl p-3 z-30 space-y-3 animate-in fade-in zoom-in-95 duration-100">
+                <div className="flex items-center justify-between border-b border-[var(--border)] pb-1.5">
+                  <span className="text-xs font-bold text-[var(--foreground)]">Custom Table Size</span>
+                  <button
+                    onClick={() => setShowTableDropdown(false)}
+                    className="text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Quick Presets */}
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-[var(--muted)] tracking-wider">Quick Presets</span>
+                  <div className="grid grid-cols-3 gap-1.5 text-[11px] font-mono">
+                    <button
+                      onClick={() => insertCustomTable(2, 3)}
+                      className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-hover)] hover:border-sky-500/50 hover:text-sky-400 text-center cursor-pointer"
+                      title="2 Columns x 3 Rows (Comparison)"
+                    >
+                      2 × 3
+                    </button>
+                    <button
+                      onClick={() => insertCustomTable(3, 3)}
+                      className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-hover)] hover:border-sky-500/50 hover:text-sky-400 text-center cursor-pointer"
+                      title="3 Columns x 3 Rows (Standard)"
+                    >
+                      3 × 3
+                    </button>
+                    <button
+                      onClick={() => insertCustomTable(4, 4)}
+                      className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-hover)] hover:border-sky-500/50 hover:text-sky-400 text-center cursor-pointer"
+                      title="4 Columns x 4 Rows (Detailed Matrix)"
+                    >
+                      4 × 4
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom Dimensions Stepper */}
+                <div className="space-y-2 pt-1 border-t border-[var(--border)]">
+                  <span className="text-[10px] font-bold uppercase text-[var(--muted)] tracking-wider">Pick Exact Dimensions</span>
+                  
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[var(--muted)]">Columns (1-10):</span>
+                    <div className="flex items-center gap-1.5 font-mono">
+                      <button
+                        onClick={() => setCustomCols((prev) => Math.max(1, prev - 1))}
+                        className="w-5 h-5 rounded bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <span className="w-5 text-center font-bold text-[var(--foreground)]">{customCols}</span>
+                      <button
+                        onClick={() => setCustomCols((prev) => Math.min(10, prev + 1))}
+                        className="w-5 h-5 rounded bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[var(--muted)]">Rows (1-30):</span>
+                    <div className="flex items-center gap-1.5 font-mono">
+                      <button
+                        onClick={() => setCustomRows((prev) => Math.max(1, prev - 1))}
+                        className="w-5 h-5 rounded bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <span className="w-5 text-center font-bold text-[var(--foreground)]">{customRows}</span>
+                      <button
+                        onClick={() => setCustomRows((prev) => Math.min(30, prev + 1))}
+                        className="w-5 h-5 rounded bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface)] text-[var(--foreground)] cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => insertCustomTable(customCols, customRows)}
+                  className="w-full py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  Insert Table ({customCols} Cols × {customRows} Rows)
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Active Recall Inserter */}
           <button
             onClick={() =>
@@ -1417,6 +1546,17 @@ export function NoteEditor() {
             >
               <Layers className="w-4 h-4 text-indigo-400" />
               <span>/diagram (Architecture)</span>
+            </button>
+            <button
+              onClick={() =>
+                applySlashCommand(
+                  '| Column 1 | Column 2 | Column 3 |\n| :--- | :--- | :--- |\n| Data 1 | Data 2 | Data 3 |\n| Data 4 | Data 5 | Data 6 |\n\n'
+                )
+              }
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm hover:bg-[var(--surface-hover)] text-left cursor-pointer"
+            >
+              <Table className="w-4 h-4 text-sky-400" />
+              <span>/table (Markdown Table)</span>
             </button>
             <button
               onClick={() =>
@@ -1731,6 +1871,83 @@ function MarkdownRenderer({
 
     if (inCodeBlock) {
       codeBlockLines.push(line);
+      continue;
+    }
+
+    // 📊 Table Parsing (GitHub Flavored Markdown Tables with Alignment)
+    if (
+      line.trim().startsWith('|') &&
+      i + 1 < lines.length &&
+      lines[i + 1].includes('|') &&
+      lines[i + 1].includes('---')
+    ) {
+      const headerLine = line;
+      const separatorLine = lines[i + 1];
+      const dataLines: string[] = [];
+      let j = i + 2;
+      while (j < lines.length && lines[j].trim().startsWith('|')) {
+        dataLines.push(lines[j]);
+        j++;
+      }
+      i = j - 1; // Advance loop pointer past table rows
+
+      const parseCells = (rowStr: string) =>
+        rowStr
+          .trim()
+          .replace(/^\|/, '')
+          .replace(/\|$/, '')
+          .split('|')
+          .map((c) => c.trim());
+
+      const headers = parseCells(headerLine);
+      const sepCells = parseCells(separatorLine);
+      const alignments = sepCells.map((cell) => {
+        const trimmed = cell.trim();
+        if (trimmed.startsWith(':') && trimmed.endsWith(':')) return 'text-center';
+        if (trimmed.endsWith(':')) return 'text-right';
+        return 'text-left';
+      });
+      const rows = dataLines.map(parseCells);
+      const tKey = `tbl-${blockKey++}`;
+
+      elements.push(
+        <div key={tKey} className="my-4 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+          <table className="w-full text-left text-xs sm:text-sm border-collapse font-sans">
+            <thead>
+              <tr className="bg-[var(--surface-hover)] border-b border-[var(--border)]">
+                {headers.map((h, hIdx) => {
+                  const alignClass = alignments[hIdx] || 'text-left';
+                  return (
+                    <th
+                      key={hIdx}
+                      className={`px-4 py-2.5 font-bold text-[var(--foreground)] border-r last:border-r-0 border-[var(--border)] ${alignClass}`}
+                    >
+                      {renderFormattedInline(h)}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {rows.map((row, rIdx) => (
+                <tr key={rIdx} className="hover:bg-[var(--surface-hover)]/40 transition-colors">
+                  {row.map((cell, cIdx) => {
+                    const alignClass = alignments[cIdx] || 'text-left';
+                    return (
+                      <td
+                        key={cIdx}
+                        className={`px-4 py-2 text-[var(--foreground)]/90 border-r last:border-r-0 border-[var(--border)] ${alignClass}`}
+                      >
+                        {renderFormattedInline(cell)}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
       continue;
     }
 
