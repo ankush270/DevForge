@@ -175,3 +175,29 @@ code, pre, kbd {
   background-color: rgba(99, 102, 241, 0.08);
 }
 
+.devforge-wysiwyg a {
+  color: #818cf8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.devforge-wysiwyg a:hover {
+  color: #a5b4fc;
+}
+
+.devforge-wysiwyg mark,
+.devforge-wysiwyg span[style*="background-color"] {
+  border-radius: 0.25rem;
+  padding: 0.1em 0.35em;
+  margin: 0 0.1em;
+}
+
+.devforge-wysiwyg img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  display: block;
+}
+

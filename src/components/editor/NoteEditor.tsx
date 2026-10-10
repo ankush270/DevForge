@@ -39,6 +39,11 @@ import {
   Clock,
   Calendar,
   RotateCcw,
+  Undo2,
+  Redo2,
+  Highlighter,
+  Link2,
+  Unlink,
   Activity,
   Cloud,
   BookOpen,
@@ -99,6 +104,16 @@ const MODE_ICON_OPTIONS = [
 function getModeIcon(iconName?: string): LucideIcon {
   return (iconName && MODE_ICONS[iconName]) || BookOpen;
 }
+
+const HIGHLIGHT_COLORS = [
+  { label: 'Yellow', color: '#fef08a', bgClass: 'bg-yellow-300' },
+  { label: 'Green', color: '#bbf7d0', bgClass: 'bg-emerald-300' },
+  { label: 'Cyan', color: '#a5f3fc', bgClass: 'bg-cyan-300' },
+  { label: 'Pink', color: '#fbcfe8', bgClass: 'bg-pink-300' },
+  { label: 'Orange', color: '#fed7aa', bgClass: 'bg-orange-300' },
+  { label: 'Purple', color: '#e9d5ff', bgClass: 'bg-purple-300' },
+  { label: 'Clear', color: 'transparent', bgClass: 'bg-transparent border border-dashed border-[var(--border)]' },
+];
 
 const DEFAULT_NOTE_MODES = (noteTitle: string, initialContent: string): NoteMode[] => [
   {
@@ -200,6 +215,14 @@ export function NoteEditor() {
   const [tableInfo, setTableInfo] = useState<TableCellInfo | null>(null);
   const [editorViewMode, setEditorViewMode] = useState<'visual' | 'raw'>('visual');
 
+  // Visual Formatting & Inserter States
+  const [showHighlightDropdown, setShowHighlightDropdown] = useState(false);
+  const [currentHighlightColor, setCurrentHighlightColor] = useState('#fef08a');
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
+  const [savedLinkRange, setSavedLinkRange] = useState<Range | null>(null);
+
   useEffect(() => {
     if (selectedNote) {
       setTitle(selectedNote.title);
@@ -256,6 +279,9 @@ export function NoteEditor() {
       }
       if (!(e.target as HTMLElement).closest('.mode-menu-container')) {
         setEditingModeId(null);
+      }
+      if (!(e.target as HTMLElement).closest('.highlight-menu-container')) {
+        setShowHighlightDropdown(false);
       }
     };
     window.addEventListener('click', handleClickOutside);
@@ -501,6 +527,83 @@ export function NoteEditor() {
     executeFormat(align);
   };
 
+  const applyHighlight = (color: string) => {
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to edit this note.' : 'You can only edit notes created by you.');
+      return;
+    }
+    editorRef.current?.focus();
+    if (!color || color === 'transparent') {
+      document.execCommand('hiliteColor', false, 'transparent');
+      document.execCommand('backColor', false, 'transparent');
+    } else {
+      const ok = document.execCommand('hiliteColor', false, color);
+      if (!ok) {
+        document.execCommand('backColor', false, color);
+      }
+      setCurrentHighlightColor(color);
+    }
+    setShowHighlightDropdown(false);
+    handleEditorInput();
+  };
+
+  const handleOpenLinkModal = () => {
+    if (!canEdit) {
+      openAuthModal('signin', !user ? 'Sign in to edit this note.' : 'You can only edit notes created by you.');
+      return;
+    }
+    const sel = window.getSelection();
+    let selectedStr = '';
+    let range: Range | null = null;
+    if (sel && sel.rangeCount > 0) {
+      range = sel.getRangeAt(0).cloneRange();
+      selectedStr = sel.toString().trim();
+    }
+    setSavedLinkRange(range);
+    setLinkText(selectedStr);
+    setLinkUrl('');
+    setShowLinkModal(true);
+  };
+
+  const handleApplyLink = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!linkUrl.trim()) return;
+
+    let finalUrl = linkUrl.trim();
+    if (!/^https?:\/\//i.test(finalUrl) && !/^mailto:/i.test(finalUrl) && !/^#/i.test(finalUrl)) {
+      finalUrl = `https://${finalUrl}`;
+    }
+
+    editorRef.current?.focus();
+    const sel = window.getSelection();
+    if (savedLinkRange && sel) {
+      sel.removeAllRanges();
+      sel.addRange(savedLinkRange);
+    }
+
+    const displayText = linkText.trim() || finalUrl;
+    const linkHtml = `<a href="${finalUrl}" target="_blank" rel="noopener noreferrer" class="text-indigo-400 underline hover:text-indigo-300 font-medium">${displayText}</a>`;
+    document.execCommand('insertHTML', false, linkHtml);
+
+    setShowLinkModal(false);
+    setSavedLinkRange(null);
+    setLinkUrl('');
+    setLinkText('');
+    handleEditorInput();
+  };
+
+  const handleRemoveLink = () => {
+    editorRef.current?.focus();
+    if (savedLinkRange) {
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(savedLinkRange);
+    }
+    document.execCommand('unlink', false);
+    setShowLinkModal(false);
+    handleEditorInput();
+  };
+
   const handleInsertTable = (cols: number, rows: number) => {
     if (!canEdit) {
       openAuthModal('signin', !user ? 'Sign in to edit this note.' : 'You can only edit notes created by you.');
@@ -571,6 +674,13 @@ export function NoteEditor() {
   };
 
   const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Ctrl+L / Cmd+L for link insertion
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'l' || e.key === 'L')) {
+      e.preventDefault();
+      handleOpenLinkModal();
+      return;
+    }
+
     // Tab inside Table navigation
     if (e.key === 'Tab') {
       const info = getActiveTableCell();
@@ -604,25 +714,40 @@ export function NoteEditor() {
   };
 
   const handleEditorPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
+    const clipboardData = e.clipboardData;
+    if (!clipboardData) return;
 
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1) {
-        const file = items[i].getAsFile();
-        if (file) {
-          e.preventDefault();
-          const reader = new FileReader();
-          reader.onload = (uploadEvent) => {
-            const dataUrl = uploadEvent.target?.result as string;
-            const imgHtml = `<div class="my-3 rounded-xl overflow-hidden border border-[var(--border)] max-w-2xl"><img src="${dataUrl}" alt="Pasted Screenshot" class="max-w-full h-auto object-contain mx-auto" /></div><p><br></p>`;
-            document.execCommand('insertHTML', false, imgHtml);
-            handleEditorInput();
-          };
-          reader.readAsDataURL(file);
-          return;
+    let imageFile: File | null = null;
+    if (clipboardData.items) {
+      for (let i = 0; i < clipboardData.items.length; i++) {
+        const item = clipboardData.items[i];
+        if (item.type.startsWith('image/')) {
+          imageFile = item.getAsFile();
+          break;
         }
       }
+    }
+    if (!imageFile && clipboardData.files && clipboardData.files.length > 0) {
+      for (let i = 0; i < clipboardData.files.length; i++) {
+        const file = clipboardData.files[i];
+        if (file.type.startsWith('image/')) {
+          imageFile = file;
+          break;
+        }
+      }
+    }
+
+    if (imageFile) {
+      e.preventDefault();
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        const dataUrl = uploadEvent.target?.result as string;
+        const imgHtml = `<div class="my-3 rounded-xl overflow-hidden border border-[var(--border)] max-w-2xl shadow-sm"><img src="${dataUrl}" alt="Pasted Screenshot" class="max-w-full h-auto object-contain mx-auto" /></div><p><br></p>`;
+        editorRef.current?.focus();
+        document.execCommand('insertHTML', false, imgHtml);
+        handleEditorInput();
+      };
+      reader.readAsDataURL(imageFile);
     }
   };
 
@@ -1449,6 +1574,100 @@ export function NoteEditor() {
         </div>
       )}
 
+      {/* 🔗 Visual Hyperlink Modal */}
+      {showLinkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            onClick={() => {
+              setShowLinkModal(false);
+              setSavedLinkRange(null);
+            }}
+          />
+          <div className="relative z-10 w-full max-w-md rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-2xl p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+              <h3 className="text-base font-bold text-[var(--foreground)] flex items-center gap-2">
+                <Link2 className="w-4 h-4 text-indigo-400" />
+                <span>Insert or Edit Link</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLinkModal(false);
+                  setSavedLinkRange(null);
+                }}
+                className="p-1 rounded text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleApplyLink} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-[var(--muted)] block mb-1">
+                  Display Text
+                </label>
+                <input
+                  type="text"
+                  value={linkText}
+                  onChange={(e) => setLinkText(e.target.value)}
+                  placeholder="e.g. Official Docs or LeetCode #206"
+                  className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--foreground)] outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-[var(--muted)] block mb-1">
+                  Destination URL
+                </label>
+                <input
+                  type="text"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://..."
+                  autoFocus
+                  className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--foreground)] outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-[var(--border)]">
+                {savedLinkRange && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveLink}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    title="Remove Link from text"
+                  >
+                    <Unlink className="w-3.5 h-3.5" />
+                    <span>Remove Link</span>
+                  </button>
+                )}
+
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowLinkModal(false);
+                      setSavedLinkRange(null);
+                    }}
+                    className="px-3.5 py-1.5 text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!linkUrl.trim()}
+                    className="px-4 py-1.5 text-xs sm:text-sm font-bold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-colors cursor-pointer shadow-sm shadow-indigo-600/30"
+                  >
+                    Save Link
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* 🧩 DSA Metadata Header */}
       {selectedNote.isDsaProblem && (
         <div className="px-4 py-2.5 bg-indigo-950/20 border-b border-indigo-500/20 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
@@ -1488,6 +1707,30 @@ export function NoteEditor() {
           {/* Main Formatting Toolbar */}
           <div className="px-3 py-2 flex items-center justify-between gap-2 overflow-x-auto">
             <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+              {/* Undo & Redo (Feature: Direct 1-Click Undo/Redo) */}
+              <div className="flex items-center gap-0.5 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-0.5 shadow-2xs">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => executeFormat('undo')}
+                  className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer transition-colors"
+                  title="Undo (Ctrl+Z)"
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => executeFormat('redo')}
+                  className="p-1.5 rounded hover:bg-[var(--surface-hover)] text-xs text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer transition-colors"
+                  title="Redo (Ctrl+Y)"
+                >
+                  <Redo2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="w-[1px] h-4 bg-[var(--border)] mx-0.5 hidden sm:block" />
+
               {/* Text Block Dropdown / Format Block */}
               <div className="flex items-center gap-0.5 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-0.5 shadow-2xs">
                 <button
@@ -1569,6 +1812,71 @@ export function NoteEditor() {
                   <Strikethrough className="w-3.5 h-3.5" />
                 </button>
               </div>
+
+              {/* Text Highlighter Marker Pen */}
+              <div className="relative highlight-menu-container">
+                <div className="flex items-center bg-[var(--surface)] border border-[var(--border)] rounded-lg p-0.5 shadow-2xs">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => applyHighlight(currentHighlightColor)}
+                    className="flex items-center gap-1 px-1.5 py-1 rounded hover:bg-[var(--surface-hover)] text-xs cursor-pointer transition-colors"
+                    title="Highlight Text (Marker Pen)"
+                  >
+                    <Highlighter className="w-3.5 h-3.5 text-amber-400" />
+                    <span
+                      className="w-2.5 h-2.5 rounded-full border border-black/20"
+                      style={{ backgroundColor: currentHighlightColor === 'transparent' ? 'transparent' : currentHighlightColor }}
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setShowHighlightDropdown((prev) => !prev)}
+                    className="p-1 rounded hover:bg-[var(--surface-hover)] text-xs text-[var(--muted)] cursor-pointer"
+                    title="Choose Highlight Color"
+                  >
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                </div>
+
+                {showHighlightDropdown && (
+                  <div className="absolute top-full left-0 mt-1 w-44 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-2xl p-2 z-30 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+                    <span className="text-[10px] font-bold uppercase text-[var(--muted)] tracking-wider px-1">
+                      Marker Pen
+                    </span>
+                    <div className="grid grid-cols-2 gap-1 pt-1">
+                      {HIGHLIGHT_COLORS.map((h) => (
+                        <button
+                          key={h.label}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => applyHighlight(h.color)}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs hover:bg-[var(--surface-hover)] cursor-pointer text-left transition-colors"
+                        >
+                          <span
+                            className={`w-3.5 h-3.5 rounded-full border border-black/20 flex-shrink-0 ${h.bgClass}`}
+                            style={h.color !== 'transparent' ? { backgroundColor: h.color } : {}}
+                          />
+                          <span className="text-[var(--foreground)] truncate">{h.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Visual Link Inserter */}
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={handleOpenLinkModal}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-hover)] text-xs text-indigo-400 font-medium cursor-pointer transition-colors shadow-2xs"
+                title="Insert or Edit Hyperlink (Ctrl+L)"
+              >
+                <Link2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Link</span>
+              </button>
 
               <div className="w-[1px] h-4 bg-[var(--border)] mx-0.5 hidden sm:block" />
 
