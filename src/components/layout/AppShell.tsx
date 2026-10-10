@@ -11,6 +11,7 @@ import { SettingsModal } from '@/components/modals/SettingsModal';
 import { CloudSyncModal } from '@/components/modals/CloudSyncModal';
 import { AuthModal } from '@/components/modals/AuthModal';
 import { DevForgeLogo } from '@/components/common/DevForgeLogo';
+import { RetroWindowBar } from '@/components/common/RetroDeco';
 import { X, PanelLeft } from 'lucide-react';
 
 interface AppShellProps {
@@ -64,6 +65,10 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Main Workspace Canvas */}
       <main className="flex-1 flex flex-col h-full overflow-y-auto relative pb-16 md:pb-0">
+        {!isFullScreen && (
+          <RetroWindowBar title="DevForge OS 2000 — Engineering Knowledge Suite" />
+        )}
+
         {/* Mobile Top Header (only on mobile when not in focus deck) */}
         {!isFullScreen && (
           <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)]/80 backdrop-blur-md sticky top-0 z-20">

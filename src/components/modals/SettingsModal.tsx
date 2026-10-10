@@ -16,7 +16,9 @@ import {
   Check,
   FileArchive,
   Cloud,
+  Sparkles,
 } from 'lucide-react';
+import { RetroWindowBar } from '@/components/common/RetroDeco';
 
 export function SettingsModal() {
   const {
@@ -76,6 +78,7 @@ export function SettingsModal() {
 
       {/* Modal Dialog */}
       <div className="relative z-10 w-full max-w-lg rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <RetroWindowBar title="Settings.exe — Platform Preferences" onClose={() => setIsSettingsOpen(false)} />
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-[var(--border)]">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
@@ -130,25 +133,37 @@ export function SettingsModal() {
           {/* 2. Theme Preferences */}
           <div className="space-y-2.5 border-t border-[var(--border)] pt-4">
             <h3 className="text-sm font-bold text-[var(--foreground)]">Color Theme</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setTheme('retro-y2k')}
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                  theme === 'retro-y2k'
+                    ? 'border-pink-500 bg-pink-500/15 text-pink-500 font-bold shadow-sm'
+                    : 'border-[var(--border)] text-[var(--muted)] hover:bg-[var(--surface-hover)]'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-pink-500 animate-pulse" />
+                <span>Retro Y2K (Bubblegum)</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setTheme('dark')}
                 className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs sm:text-sm font-medium transition-all cursor-pointer ${
                   theme === 'dark'
-                    ? 'border-indigo-500 bg-indigo-500/15 text-indigo-300 font-semibold'
+                    ? 'border-indigo-500 bg-indigo-500/15 text-indigo-300 font-bold'
                     : 'border-[var(--border)] text-[var(--muted)] hover:bg-[var(--surface-hover)]'
                 }`}
               >
                 <Moon className="w-4 h-4" />
-                <span>Dark Mode (Pitch Black)</span>
+                <span>Dark Mode (Console)</span>
               </button>
               <button
                 type="button"
                 onClick={() => setTheme('light')}
                 className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs sm:text-sm font-medium transition-all cursor-pointer ${
                   theme === 'light'
-                    ? 'border-indigo-500 bg-indigo-500/15 text-indigo-300 font-semibold'
+                    ? 'border-indigo-500 bg-indigo-500/15 text-indigo-300 font-bold'
                     : 'border-[var(--border)] text-[var(--muted)] hover:bg-[var(--surface-hover)]'
                 }`}
               >

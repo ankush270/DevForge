@@ -12,6 +12,7 @@ import {
   Plus,
   Moon,
   Sun,
+  Sparkles,
   PanelLeftClose,
   PanelLeft,
   FolderPlus,
@@ -42,6 +43,7 @@ import {
   SUBJECT_COLOR_OPTIONS,
 } from '@/lib/subjectIcons';
 import { DevForgeLogo } from '@/components/common/DevForgeLogo';
+import { RetroSparkle, RetroWindowBar } from '@/components/common/RetroDeco';
 
 function SubjectIconPicker({
   selectedIcon,
@@ -308,10 +310,16 @@ export function Sidebar() {
         <div className="mt-auto flex flex-col gap-3 items-center">
           <button
             onClick={toggleTheme}
-            className="p-2.5 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)] transition-colors"
-            title="Toggle Theme"
+            className="p-2.5 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
+            title={`Switch to ${theme === 'retro-y2k' ? 'Dark' : theme === 'dark' ? 'Light' : 'Retro Y2K'} Mode`}
           >
-            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {theme === 'retro-y2k' ? (
+              <Sparkles className="w-5 h-5 text-pink-500 animate-pulse" />
+            ) : theme === 'dark' ? (
+              <Sun className="w-5 h-5 text-amber-400" />
+            ) : (
+              <Moon className="w-5 h-5 text-indigo-400" />
+            )}
           </button>
         </div>
       </aside>
@@ -320,14 +328,16 @@ export function Sidebar() {
 
   return (
     <aside className="w-72 md:w-80 flex-shrink-0 h-full border-r border-[var(--border)] bg-[var(--surface)] flex flex-col transition-all duration-200">
+      <RetroWindowBar title="Explorer.exe — Folders" />
       {/* Brand Header */}
       <div className="p-3.5 border-b border-[var(--border)] flex items-center justify-between">
         <div
-          className="flex items-center gap-2.5 cursor-pointer group"
+          className="flex items-center gap-2 cursor-pointer group"
           onClick={() => setActiveView('dashboard')}
           title="DevForge - Return to Mission Control"
         >
           <DevForgeLogo size="md" showText={true} />
+          {theme === 'retro-y2k' && <RetroSparkle size={15} className="text-[#FF3D9A]" />}
         </div>
 
         <button
@@ -907,10 +917,16 @@ export function Sidebar() {
           </button>
           <button
             onClick={toggleTheme}
-            className="p-1.5 rounded-md hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)] transition-colors"
-            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            className="p-1.5 rounded-md hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
+            title={`Switch to ${theme === 'retro-y2k' ? 'Dark' : theme === 'dark' ? 'Light' : 'Retro Y2K'} Mode`}
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {theme === 'retro-y2k' ? (
+              <Sparkles className="w-4 h-4 text-pink-500 animate-pulse" />
+            ) : theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-indigo-400" />
+            )}
           </button>
         </div>
       </div>

@@ -18,6 +18,7 @@ import {
   Cloud,
   Moon,
   Sun,
+  Sparkles,
   RotateCcw,
   Cpu,
   FileText,
@@ -213,13 +214,19 @@ export function LandingPage() {
               </a>
             </nav>
 
-            {/* Dark / Light Mode Toggle */}
+            {/* Retro / Dark / Light Mode Toggle */}
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
-              title="Toggle Dark / Light Theme"
+              title={`Switch to ${theme === 'retro-y2k' ? 'Dark' : theme === 'dark' ? 'Light' : 'Retro Y2K'} Mode`}
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-sky-400" />}
+              {theme === 'retro-y2k' ? (
+                <Sparkles className="w-4 h-4 text-pink-500 animate-pulse" />
+              ) : theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-sky-400" />
+              )}
             </button>
 
             {/* User Profile or Sign In CTA */}

@@ -12,6 +12,7 @@ import {
   Flame,
   Compass,
 } from 'lucide-react';
+import { RetroWindowBar } from '@/components/common/RetroDeco';
 
 function cleanPlainText(raw: string): string {
   if (!raw) return '';
@@ -373,6 +374,7 @@ export function CommandPalette() {
 
       {/* Modal Dialog */}
       <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <RetroWindowBar title="Find.exe — Global Full-Text Search" onClose={() => setIsCommandPaletteOpen(false)} />
         {/* Search Input Bar */}
         <div className="flex items-center px-4 border-b border-[var(--border)] bg-[var(--surface)]">
           <Search className="w-5 h-5 text-indigo-400 mr-3 flex-shrink-0" />

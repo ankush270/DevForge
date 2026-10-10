@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light';
+export type Theme = 'retro-y2k' | 'dark' | 'light';
 
 interface ThemeContextType {
   theme: Theme;
@@ -15,25 +15,27 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 function applyTheme(t: Theme) {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
-  if (t === 'dark') {
+  root.classList.remove('dark', 'light', 'retro-y2k');
+  if (t === 'retro-y2k') {
+    root.classList.add('retro-y2k');
+  } else if (t === 'dark') {
     root.classList.add('dark');
-    root.classList.remove('light');
   } else {
-    root.classList.remove('dark');
     root.classList.add('light');
   }
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('dark');
+  const [theme, setThemeState] = useState<Theme>('retro-y2k');
 
   useEffect(() => {
     const saved = localStorage.getItem('interview_os_theme') as Theme | null;
-    if (saved === 'dark' || saved === 'light') {
+    if (saved === 'retro-y2k' || saved === 'dark' || saved === 'light') {
       setThemeState(saved);
       applyTheme(saved);
     } else {
-      applyTheme('dark');
+      setThemeState('retro-y2k');
+      applyTheme('retro-y2k');
     }
   }, []);
 
@@ -48,7 +50,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
+    // Cycle between retro-y2k -> dark -> light -> retro-y2k
+    const next: Theme = theme === 'retro-y2k' ? 'dark' : theme === 'dark' ? 'light' : 'retro-y2k';
     setTheme(next);
   };
 

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { DevForgeLogo } from '@/components/common/DevForgeLogo';
+import { RetroWindowBar } from '@/components/common/RetroDeco';
 import { X, Lock, Mail, User, Key, ArrowRight, LockKeyhole, AlertCircle, Terminal } from 'lucide-react';
 
 export function AuthModal() {
@@ -69,6 +70,8 @@ export function AuthModal() {
 
       {/* Modal Dialog */}
       <div className="relative z-10 w-full max-w-md rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <RetroWindowBar title="Auth.exe — Access Control" onClose={closeAuthModal} />
+
         {/* Header */}
         <div className="p-5 border-b border-[var(--border)] flex items-center justify-between">
           <DevForgeLogo size="sm" showText={true} />
